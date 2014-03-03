@@ -1,0 +1,20 @@
+How to build
+
+In theory you can build this with Windows SDK. In practice this was never tried yet. In the repo there is a Visual Studio 2010 solution that works.
+You need gSOAP (https://sourceforge.net/projects/gsoap2/) in order to build this project. Once you installed gSOAP you need to adjust the solution for the gSOAP path. With the project open in Visual Sudio 2010, in the Solution Explorer go to gsoap->def and right-click on XMLAMethods.h. You must change the Custom Build Tool so that it matches your actual location of soapcpp2.exe. 
+Please note: You must build at least once a debug version. Only debug versions generate the gSOAP files required by the build process.
+
+
+How to register
+
+The provider is a COM dll. You register it using regsvr32. If you build using Visual Studio it will auto-register. On systems with UAC you need to run as administrator (Visual Studio/regsvr32) in order to register.
+
+
+How to use
+
+Use Excel. Create a pivot table from an external data source. Enjoy.
+
+
+How to get help
+
+We are building a wiki for the project (https://sourceforge.net/p/xmlaconnect/wiki/Home/). Stay tuned.

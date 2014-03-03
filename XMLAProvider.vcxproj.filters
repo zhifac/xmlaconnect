@@ -1,0 +1,219 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{a5c2052d-bf11-40f1-acf9-63b83bf9f5a2}</UniqueIdentifier>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="gsoap">
+      <UniqueIdentifier>{36f19a29-f6e5-44d1-82bd-e0fdc6d15e47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gsoap\def">
+      <UniqueIdentifier>{07f7b432-55cd-4282-af5d-9d33eac25419}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\data_link">
+      <UniqueIdentifier>{31b6946d-c65f-44c1-a032-f38395bb85f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\schema">
+      <UniqueIdentifier>{d327e193-157f-4a05-9fbd-90e5b0fa9bdd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\axis">
+      <UniqueIdentifier>{b195d381-5e3c-41e9-8d2e-e5e452833451}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ui">
+      <UniqueIdentifier>{d4163bba-386a-47a6-a378-d4e52c735045}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\com">
+      <UniqueIdentifier>{ac65952e-0586-47b0-93ea-b20198aa5e49}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gsoap\auto_generated">
+      <UniqueIdentifier>{a50be9ee-20da-4284-9c41-e4aa299e49fe}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="XMLAProvider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="XMLAProvider_i.c">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="soapXMLAConnectionProxy.cpp">
+      <Filter>gsoap\auto_generated</Filter>
+    </ClCompile>
+    <ClCompile Include="soapC.cpp">
+      <Filter>gsoap\auto_generated</Filter>
+    </ClCompile>
+    <ClCompile Include="stdsoap2.cpp">
+      <Filter>gsoap</Filter>
+    </ClCompile>
+    <ClCompile Include="execute_response.cpp">
+      <Filter>gsoap</Filter>
+    </ClCompile>
+    <ClCompile Include="ui_elements.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rowset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="command.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dllmain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XMLAProvider_i.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="soapXMLAConnectionProxy.h">
+      <Filter>gsoap\auto_generated</Filter>
+    </ClInclude>
+    <ClInclude Include="soapH.h">
+      <Filter>gsoap\auto_generated</Filter>
+    </ClInclude>
+    <ClInclude Include="soapStub.h">
+      <Filter>gsoap\auto_generated</Filter>
+    </ClInclude>
+    <ClInclude Include="catalog_row.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="cube_row.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="dimension_row.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="hierarchy_row.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="level_row.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="measure_row.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="member_row.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="property_row.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="set_row.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="base_rowset.h">
+      <Filter>Header Files\schema</Filter>
+    </ClInclude>
+    <ClInclude Include="axis_rowset.h">
+      <Filter>Header Files\axis</Filter>
+    </ClInclude>
+    <ClInclude Include="axis_row.h">
+      <Filter>Header Files\axis</Filter>
+    </ClInclude>
+    <ClInclude Include="connection_handler.h">
+      <Filter>Header Files\data_link</Filter>
+    </ClInclude>
+    <ClInclude Include="pass_prompt.h">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="prop_adv_dlg.h">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="prop_conn_dlg.h">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="data_source.h">
+      <Filter>Header Files\com</Filter>
+    </ClInclude>
+    <ClInclude Include="row_data.h">
+      <Filter>Header Files\com</Filter>
+    </ClInclude>
+    <ClInclude Include="command.h">
+      <Filter>Header Files\com</Filter>
+    </ClInclude>
+    <ClInclude Include="rowset.h">
+      <Filter>Header Files\com</Filter>
+    </ClInclude>
+    <ClInclude Include="session.h">
+      <Filter>Header Files\com</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="XMLAProvider.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="XMLAProvider.rgs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="XMLAProvider.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="XMLAData.rgs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="XMLAConnection.rgs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="XMLAConnectionDlg.rgs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="XMLAAdvancedDlg.rgs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="DiscoverResponse.gsoap">
+      <Filter>gsoap\def</Filter>
+    </None>
+    <None Include="ExecuteResponse.gsoap">
+      <Filter>gsoap\def</Filter>
+    </None>
+    <None Include="Properties.gsoap">
+      <Filter>gsoap\def</Filter>
+    </None>
+    <None Include="Restrictions.gsoap">
+      <Filter>gsoap\def</Filter>
+    </None>
+    <None Include="XMLAMamespaces.nsmap">
+      <Filter>gsoap\def</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="XMLAProvider.idl">
+      <Filter>Source Files</Filter>
+    </Midl>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="XMLAMethods.h">
+      <Filter>gsoap\def</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>
