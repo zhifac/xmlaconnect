@@ -343,7 +343,7 @@ public:
 	
 	bool no_session() 
 	{
-		bool result = m_proxy.fault && 0 == strcmp(m_proxy.fault->faultstring,"Invalid session id");
+		bool result = m_proxy.fault && 0 == strcmp(m_proxy.fault->faultstring,"Invalid Session id");
 		if ( result ) {
 			m_session_id = -1;
 		}
