@@ -1,0 +1,17 @@
+
+class xmlns__RestrictionList{
+public:
+	char*		PropertyName;
+	char*		CATALOG_USCORENAME;
+	char*		CUBE_USCORENAME;
+	char*		HIERARCHY_USCOREUNIQUE_USCORENAME;
+	char*		MEMBER_USCOREUNIQUE_USCORENAME;
+	char*		LEVEL_USCOREUNIQUE_USCORENAME;
+	char*		TREE_USCOREOP;
+};
+
+class xmlns__Restrictions
+{
+   public:
+   xmlns__RestrictionList RestrictionList; 
+};

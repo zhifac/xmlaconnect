@@ -1,0 +1,25 @@
+HKCR
+{
+	XMLAProviderLib.XMLAAdvancedDlg.1 = s 'XMLAAdvancedDlg Class'
+	{
+		CLSID = s '{CE03B050-C3C1-44A2-B1F6-1579F621C34D}'
+	}
+	XMLAProviderLib.XMLAAdvancedDlg = s 'XMLAAdvancedDlg Class'
+	{		
+		CurVer = s 'XMLAProviderLib.XMLAAdvancedDlg.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {CE03B050-C3C1-44A2-B1F6-1579F621C34D} = s 'XMLAAdvancedDlg Class'
+		{
+			ProgID = s 'XMLAProviderLib.XMLAAdvancedDlg.1'
+			VersionIndependentProgID = s 'XMLAProviderLib.XMLAAdvancedDlg'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{27958A5E-8C87-4CFA-B293-7940DE842E24}'
+			Version = s '1.0'
+		}
+	}
+}

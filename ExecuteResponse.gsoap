@@ -1,0 +1,189 @@
+extern typedef struct UserPropStruct {
+	const char*		elementName;
+	const char*		value;
+} UserDataProp; 
+
+class arrayUserProp {
+public:
+	int					__size;
+	UserDataProp*		__array;
+};
+
+class	xmlns__Cube {
+public:
+	xsd__string		CubeName;	
+};
+
+class xmlns__CubeInfo {
+public:
+	xmlns__Cube			Cube;
+};
+
+class xmlns__UName {
+public:
+	xsd__string		@name;
+	xsd__string		UName;
+	xmlns__UName();
+};
+
+class	xmlns__Caption {
+public:
+	xsd__string		@name;
+	xsd__string		Caption;
+	xmlns__Caption();
+};
+
+class xmlns__LName {
+public:
+	xsd__string		@name;
+	xsd__string		LName;
+	xmlns__LName();
+};
+
+class xmlns__LNum {
+public:
+	xsd__string		@name;
+	xsd__string		LNum;
+	xmlns__LNum();
+};
+
+class xmlns__DisplayInfo {
+public:
+	xsd__string		@name;
+	xsd__string		DisplayInfo;
+	xmlns__DisplayInfo();
+};
+
+class xmlns__ParentUniqueName{
+public:
+	xsd__string		@name;
+	xsd__string		ParentUniqueName;
+	xmlns__ParentUniqueName();
+};
+
+class xmlns__MemberName{
+public:
+	xsd__string		@name;
+	xsd__string		MEMBER_USCORENAME;
+};
+
+class xmlns__MemberType{
+public:
+	xsd__string		@name;
+	xsd__string		MEMBER_USCORETYPE;
+	xmlns__MemberType();
+};
+
+class xmlns__HierarchyInfo {
+public:
+	xsd__string						@name;
+	xmlns__UName					UName;
+	xmlns__Caption					Caption;
+	xmlns__LName					LName;
+	xmlns__LNum						LNum;
+	xmlns__DisplayInfo				DisplayInfo;
+	xmlns__ParentUniqueName*		PARENT_USCOREUNIQUE_USCORENAME;
+	xmlns__MemberName*				MEMBER_USCORENAME;
+	xmlns__MemberType*				MEMBER_USCORETYPE;
+	arrayUserProp					__userProp;	
+};
+
+
+class xmlns__AxisInfo{
+public:
+	int							__size;
+	xmlns__HierarchyInfo*		HierarchyInfo;
+	xsd__string					@name;
+ };
+
+class xmlns__AxesInfo {
+public:
+	int						__size;
+	xmlns__AxisInfo*		AxisInfo;
+};
+
+class xmlns__CellInfo {
+public:
+	struct xmlns__ValueCellInfo {
+		xsd__string			@name;
+	} Value;
+};
+
+
+class xmlns__OlapInfo {
+public:
+	xmlns__CubeInfo		CubeInfo;
+	xmlns__AxesInfo		AxesInfo;
+	xmlns__CellInfo		CellInfo;
+};
+
+class xmlns__Member {
+public:
+	xsd__string			@Hierarchy;
+	xsd__string			UName;
+	xsd__string			Caption;
+	xsd__string			LName;
+	xsd__string			LNum;
+	xsd__string			DisplayInfo;
+	xsd__string			PARENT_USCOREUNIQUE_USCORENAME;	
+	xsd__string			MEMBER_USCORENAME;
+	xsd__string			MEMBER_USCORETYPE;
+	arrayUserProp		__userProp;
+	xmlns__Member();
+};
+
+class xmlns__Tuples {
+public:
+	int  __size;
+	struct xmlns__Tuple{
+		int __size;
+		xmlns__Member*	Member;
+	}* Tuple;
+};
+
+class xmlns__Axes {
+public:
+	int							__size;
+	struct xmlns__Axis {
+			xsd__string			@name;
+			xmlns__Tuples		Tuples;
+		}* Axis;
+};
+
+class xmlns__Cell {
+public:
+	xsd__string		@CellOrdinal;
+	struct _Value {
+		xsd__string		@xsi__type;
+		xsd__string		__v;
+	} Value;
+
+};
+
+class xmlns__CellData {
+public:
+	int						__size;
+	xmlns__Cell*			Cell;	
+};
+
+class xmlns__root {
+public:
+	xmlns__OlapInfo*		OlapInfo;
+	xmlns__Axes*			Axes;
+	xmlns__CellData*		CellData;
+};
+
+class cxmla__executeReturn {
+public:
+		xmlns__root		root;
+}; 
+
+class xmlns__Command {
+public:
+	char*		Statement;
+};
+
+class cxmla__ExecuteResponse {
+	xsd__string						@xmlns;	
+	cxmla__executeReturn			cxmla__return__;
+};
