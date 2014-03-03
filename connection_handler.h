@@ -422,8 +422,16 @@ public:
 
 	void get_axis_info( DBCOUNTITEM   *pcAxes, MDAXISINFO   **prgAxisInfo )
 	{
-		if ( NULL == m_e_response.cxmla__return__.root.OlapInfo ) {
+		if ( nullptr == m_e_response.cxmla__return__.root.OlapInfo ) {
 			throw std::runtime_error( "no query response");
+		}
+
+		if ( nullptr == m_e_response.cxmla__return__.root.OlapInfo ){
+			throw std::runtime_error( "the server returned an invalid answer");
+		}
+
+		if ( nullptr == m_e_response.cxmla__return__.root.Axes ){
+			throw std::runtime_error( "the server returned an invalid answer");
 		}
 
 		*pcAxes			= ( DBCOUNTITEM ) m_e_response.cxmla__return__.root.OlapInfo->AxesInfo.__size;
