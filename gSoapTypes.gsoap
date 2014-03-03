@@ -1,2 +1,0 @@
-typedef  char* xsd__string;
-typedef bool xsd__bool;
