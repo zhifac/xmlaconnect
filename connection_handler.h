@@ -25,6 +25,7 @@
 #pragma once
 
 #include "soapXMLAConnectionProxy.h"
+#include <vector>
 
 class connection_handler
 {
@@ -44,6 +45,7 @@ private:
 	std::string m_user;
 	std::string m_pass;
 	std::string m_catalog;
+	std::vector<int> m_cell_data;
 private:
 	HRESULT get_connection_data()
 	{
@@ -309,6 +311,26 @@ public:
 		return result;
 	}
 
+	void get_cell_data( cxmla__ExecuteResponse&  aResponse ) 
+	{
+		if ( NULL == aResponse.cxmla__return__.root.CellData ) return;
+		if ( NULL == aResponse.cxmla__return__.root.Axes ) return; 
+
+		int size = 1;
+		//get cellData size with empty values
+		for( int i = 0; i < aResponse.cxmla__return__.root.Axes->__size; ++i ) {
+			if (  strcmp (aResponse.cxmla__return__.root.Axes->Axis[i].name,"SlicerAxis") != 0) {
+				size *= aResponse.cxmla__return__.root.Axes->Axis[i].Tuples.__size;
+			}
+		}
+
+		m_cell_data.assign (size,-1);
+
+		for( int i = 0; i < aResponse.cxmla__return__.root.CellData->__size; ++i ) {
+			m_cell_data[ atoi(aResponse.cxmla__return__.root.CellData->Cell[i].CellOrdinal) ] = i;
+		}
+	}
+
 	int execute ( char* statement )
 	{
 		m_proxy.soap_endpoint = m_location.c_str();
@@ -333,7 +355,11 @@ public:
 		Properties.PropertyList.AxisFormat = "TupleFormat";
 		Properties.PropertyList.Format = "Multidimensional";
 		Properties.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());
+		//clear cell data
+		m_cell_data.clear();
 		int result = m_proxy.Execute( NULL, command, Properties, m_e_response );
+		//add cell data
+		get_cell_data( m_e_response );
 		if ( NULL != m_session && NULL != m_proxy.header && NULL != m_proxy.header->Session && NULL != m_proxy.header->Session->SessionId ) {
 			session::session_table()[ m_session ] = atoi( m_proxy.header->Session->SessionId );
 		}
@@ -383,12 +409,23 @@ public:
 		if ( NULL == m_e_response.cxmla__return__.root.CellData ) {
 			throw std::runtime_error( "no query response");
 		}
-		if ( index >= (unsigned int )m_e_response.cxmla__return__.root.CellData->__size ) {
-			throw out_of_bound();
+
+		if ( index >= m_cell_data.size() ) {
+			//empty response
+			result.bstrVal = NULL;
+			result.vt = VT_BSTR;
+			return result;
 		}
 
-		_Value val = m_e_response.cxmla__return__.root.CellData->Cell[index].Value;
+		if ( -1 == m_cell_data[index] ) {
+			//empty response
+			result.bstrVal = NULL;
+			result.vt = VT_BSTR;
+			return result;
+		}
 
+		_Value& val = m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].Value;
+		
 		if ( 0 == strcmp( val.xsi__type, "xsd:double" ) ) {
 			result.vt = VT_R8;
 			if ( NULL == val.__v ) {
