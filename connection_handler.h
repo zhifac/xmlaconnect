@@ -288,6 +288,7 @@ public:
 	{
 		m_proxy.soap_endpoint = m_location.c_str();
 		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS);
+		//soap_omode(&m_proxy,SOAP_XML_INDENT);
 		if ( -1 == m_session_id ) {
 			begin_session();
 			m_proxy.userid = m_user.c_str();
@@ -303,6 +304,9 @@ public:
 		load_restrictions( cRestrictions, rgRestrictions, restrictions );
 		xmlns__Properties props;
 		props.PropertyList.LocaleIdentifier = 1048;
+
+		props.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());//make Palo happy
+
 		int result = m_proxy.Discover( endpoint, restrictions, props, m_d_response );
 		if ( NULL != m_session && NULL != m_proxy.header && NULL != m_proxy.header->Session && NULL != m_proxy.header->Session->SessionId ) {
 			session::session_table()[ m_session ] = atoi( m_proxy.header->Session->SessionId );
@@ -335,7 +339,7 @@ public:
 	{
 		m_proxy.soap_endpoint = m_location.c_str();
 		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS);
-
+		//soap_omode(&m_proxy,SOAP_XML_INDENT);
 		if ( -1 == m_session_id ) {
 			begin_session();
 			m_proxy.userid = m_user.c_str();
