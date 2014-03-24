@@ -287,8 +287,8 @@ public:
 	int discover( char* endpoint, ULONG cRestrictions, const VARIANT* rgRestrictions)
 	{
 		m_proxy.soap_endpoint = m_location.c_str();
+
 		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS);
-		//soap_omode(&m_proxy,SOAP_XML_INDENT);
 		if ( -1 == m_session_id ) {
 			begin_session();
 			m_proxy.userid = m_user.c_str();
@@ -303,10 +303,8 @@ public:
 		xmlns__Restrictions restrictions;
 		load_restrictions( cRestrictions, rgRestrictions, restrictions );
 		xmlns__Properties props;
+		props.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());//make Palo happy		
 		props.PropertyList.LocaleIdentifier = 1048;
-
-		props.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());//make Palo happy
-
 		int result = m_proxy.Discover( endpoint, restrictions, props, m_d_response );
 		if ( NULL != m_session && NULL != m_proxy.header && NULL != m_proxy.header->Session && NULL != m_proxy.header->Session->SessionId ) {
 			session::session_table()[ m_session ] = atoi( m_proxy.header->Session->SessionId );
@@ -401,6 +399,7 @@ public:
 
 	const bool valid_credentials()
 	{
+		if  ( 401 ==  m_proxy.error ) { return false; }
 		if  ( NULL == m_proxy.fault ) { return true; }
 		return ( NULL == strstr( m_proxy.fault->faultstring, "ORA-01005" )  && NULL == strstr( m_proxy.fault->faultstring, "ORA-01017" ) );
 	}
@@ -448,6 +447,14 @@ public:
 		} else if ( 0 == strcmp( val.xsi__type, "xsd:empty" ) ) {
 			result.bstrVal = NULL;
 			result.vt = VT_BSTR;
+		} else if ( 0 == strcmp( val.xsi__type, "xsd:int" ) ) {
+			result.vt = VT_I4;
+			if ( NULL == val.__v ) {
+				result.bstrVal = NULL;
+				result.vt = VT_BSTR;
+			} else {
+				result.intVal = atoi( val.__v );
+			}
 		} else {
 			//handle unknown as string
 			result.vt = VT_BSTR;
