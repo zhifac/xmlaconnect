@@ -26,6 +26,7 @@
 #include "connection_handler.h"
 #include "axis_rowset.h"
 
+int (*connection_handler::fparsehdr)(struct soap*, const char*, const char*) = nullptr;
 
 STDMETHODIMP command::Execute(IUnknown * pUnkOuter, REFIID riid, DBPARAMS * pParams, DBROWCOUNT * pcRowsAffected, IUnknown ** ppRowset)
 {
@@ -34,6 +35,7 @@ STDMETHODIMP command::Execute(IUnknown * pUnkOuter, REFIID riid, DBPARAMS * pPar
 
 	mConnectionHandler.reset( new connection_handler( pSessUnk ) );
 	pSessUnk->Release();
+//	m_strCommandText.ToLower();
 	int result = mConnectionHandler->execute( CW2A( m_strCommandText.m_str, CP_UTF8 ) );
 	if ( mConnectionHandler->no_session() ) {
 		result = mConnectionHandler->execute( CW2A( m_strCommandText.m_str, CP_UTF8 ) );

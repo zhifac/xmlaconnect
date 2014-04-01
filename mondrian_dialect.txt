@@ -1,0 +1,23 @@
+# Lines starting with a hash are comments.
+# Empty lines are ignored
+
+
+# Caps can be upper/lower/any.
+# In the case of upper/lower the MDX query string will be transformed 
+# to uppercase/lowercase. In the case of any the string is left untouched
+# Defaults to any. Caps in the definition are ignored so one can write
+# CaPs AnY
+
+caps any
+
+
+# Alias are plain string replacements. The syntax is:
+# alias string_to_replace=replacement_string
+# There is no lexer involved so be aware.
+# Trying to alias to little might break the syntax.
+# Try to use token separators to clarify what you need. Also note that whitespaces
+# in the definition DO COUNT.
+
+alias .member_caption=.caption
+
+# Leave an empty line at the end

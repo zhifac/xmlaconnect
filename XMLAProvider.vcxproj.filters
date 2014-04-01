@@ -41,6 +41,9 @@
     <Filter Include="gsoap\auto_generated">
       <UniqueIdentifier>{a50be9ee-20da-4284-9c41-e4aa299e49fe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\compatibility">
+      <UniqueIdentifier>{f3517a29-0d54-4d3c-8fef-2913fa702896}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -164,6 +167,9 @@
     </ClInclude>
     <ClInclude Include="session.h">
       <Filter>Header Files\com</Filter>
+    </ClInclude>
+    <ClInclude Include="query_translator.h">
+      <Filter>Header Files\compatibility</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

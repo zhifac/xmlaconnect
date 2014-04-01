@@ -48,7 +48,40 @@ class ATL_NO_VTABLE session :
 	public ISupportErrorInfo
 {
 public:
-	typedef std::map< session*, int > session_table_type;
+	struct session_data
+	{
+		enum server_type
+		{
+			UNDEFINED = 0,
+			ORACLE = 1,
+			MONDRIAN = 2,
+			JEDOX = 3
+		};
+
+		int id;
+		server_type server;
+
+		session_data() : id(-1), server( UNDEFINED ){}
+
+		void register_server( const char* server_data )
+		{
+			if ( server !=  UNDEFINED  ) { return; }
+			if ( str_match( server_data, "Apache" ) ) { server = MONDRIAN; return; }
+			if ( str_match( server_data, "gSOAP" ) ) { server = ORACLE; return; }
+			if ( str_match( server_data, "Palo" ) ) { server = JEDOX; return; }
+		}
+
+	private:
+		bool str_match( const char* src, const char* match )
+		{
+			while ( *src++ == *match++ )
+			{
+				if ( 0 == *src ) { return true; }
+			}
+			return 0 == *match;
+		}
+	};
+	typedef std::map< session*, session_data > session_table_type;
 	static  session_table_type& session_table(){
 		static session_table_type result;
 		return result;
@@ -59,7 +92,7 @@ public:
 
 	HRESULT FinalConstruct()
 	{
-		session_table()[ this ] = -1;
+		session_table()[ this ] = session_data();
 		return FInit();
 	}
 	

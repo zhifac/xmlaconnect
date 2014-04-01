@@ -85,7 +85,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Work\gsoap\gsoap\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\workspace\gsoap\gsoap\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -289,6 +289,7 @@
     <ClInclude Include="member_row.h" />
     <ClInclude Include="pass_prompt.h" />
     <ClInclude Include="property_row.h" />
+    <ClInclude Include="query_translator.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="row_data.h" />
     <ClInclude Include="set_row.h" />
@@ -304,7 +305,7 @@
     <ClInclude Include="rowset.h" />
     <ClInclude Include="session.h" />
     <CustomBuild Include="XMLAMethods.h">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\Work\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\workspace\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Work\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>

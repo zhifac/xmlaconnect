@@ -24,8 +24,14 @@
 
 #pragma once
 
-#include "soapXMLAConnectionProxy.h"
+#define ALLOW_TRANSLATIONS
+
 #include <vector>
+#include <unordered_map>
+#include "soapXMLAConnectionProxy.h"
+#ifdef ALLOW_TRANSLATIONS
+#include "query_translator.h"
+#endif
 
 class connection_handler
 {
@@ -47,6 +53,28 @@ private:
 	std::string m_catalog;
 	std::vector<int> m_cell_data;
 private:
+
+	typedef std::unordered_map< soap*, session* > indirection_table_type;
+	static indirection_table_type& soap_2_session()
+	{
+		static indirection_table_type result;
+		return result;
+	}
+	static int (*fparsehdr)(struct soap*, const char*, const char*);//this is defined in command.cpp
+
+	static int http_post_parse_header(struct soap *soap, const char* key, const char* val)
+	{
+		if ( !soap_tag_cmp(key, "Server") )
+		{
+			::session* match = soap_2_session()[soap];
+			if ( nullptr != match ) 
+			{
+				session::session_table()[ match ].register_server( val );
+			}
+		}
+		return fparsehdr( soap, key, val );
+	}
+
 	HRESULT get_connection_data()
 	{
 		HRESULT					hr;
@@ -259,30 +287,47 @@ private:
 		m_proxy.header->BeginSession = NULL;
 	}
 public:
-	connection_handler( IUnknown* aSession ) : m_session( NULL )
+	connection_handler( IUnknown* aSession ) : m_session( nullptr )
 	{
 		IGetSelf* pGetSelf;
 		aSession->QueryInterface( __uuidof( IGetSelf ) , ( void** ) &pGetSelf );
 		pGetSelf->GetSelf( (void**)&m_session );
 		pGetSelf->Release();
 
-		m_session_id = session::session_table()[ m_session ];
+		m_session_id = session::session_table()[ m_session ].id;
+
 		get_connection_data();
 
 		m_proxy.header = NULL;
+
+		if ( nullptr == fparsehdr ) 
+		{
+			fparsehdr = m_proxy.fparsehdr;
+		}
+		m_proxy.fparsehdr = http_post_parse_header;
+
+		soap_2_session()[ &m_proxy ] = m_session;
 	}
 
 	connection_handler( const std::string& location, const std::string& user, const std::string& pass, const std::string& catalog )
-		: m_session( NULL )
+		: m_session( nullptr )
 		, m_location(location)
 		, m_user(user)
 		, m_pass(pass)
 		, m_catalog( catalog )
 		, m_session_id( -1 )
 	{
+		if ( nullptr == fparsehdr ) 
+		{
+			fparsehdr = m_proxy.fparsehdr;
+		}
+		m_proxy.fparsehdr = http_post_parse_header;
 	}
 
-	virtual ~connection_handler(){}
+	virtual ~connection_handler()
+	{
+		soap_2_session().erase( &m_proxy );
+	}
 
 	int discover( char* endpoint, ULONG cRestrictions, const VARIANT* rgRestrictions)
 	{
@@ -307,7 +352,7 @@ public:
 		props.PropertyList.LocaleIdentifier = 1048;
 		int result = m_proxy.Discover( endpoint, restrictions, props, m_d_response );
 		if ( NULL != m_session && NULL != m_proxy.header && NULL != m_proxy.header->Session && NULL != m_proxy.header->Session->SessionId ) {
-			session::session_table()[ m_session ] = atoi( m_proxy.header->Session->SessionId );
+			session::session_table()[ m_session ].id = atoi( m_proxy.header->Session->SessionId );
 		}
 		unload_restrictions( restrictions );
 		return result;
@@ -350,6 +395,15 @@ public:
 		}	
 
 		xmlns__Command command;
+
+#ifdef ALLOW_TRANSLATIONS
+		std::string translation( statement );
+		if ( nullptr !=  m_session )
+		{
+			query_translator::translator().translate( translation, session::session_table()[ m_session ].server );
+		}
+		statement = const_cast<char*>( translation.c_str() );
+#endif
 		command.Statement = statement;
 		xmlns__Properties Properties;
 		Properties.PropertyList.LocaleIdentifier = 1048;
@@ -363,7 +417,7 @@ public:
 		//add cell data
 		get_cell_data( m_e_response );
 		if ( NULL != m_session && NULL != m_proxy.header && NULL != m_proxy.header->Session && NULL != m_proxy.header->Session->SessionId ) {
-			session::session_table()[ m_session ] = atoi( m_proxy.header->Session->SessionId );
+			session::session_table()[ m_session ].id = atoi( m_proxy.header->Session->SessionId );
 		}
 
 		return result;
@@ -399,8 +453,8 @@ public:
 
 	const bool valid_credentials()
 	{
-		if  ( 401 ==  m_proxy.error ) { return false; }
 		if  ( NULL == m_proxy.fault ) { return true; }
+		if  ( 401 ==  m_proxy.error ) { return false; }
 		return ( NULL == strstr( m_proxy.fault->faultstring, "ORA-01005" )  && NULL == strstr( m_proxy.fault->faultstring, "ORA-01017" ) );
 	}
 
