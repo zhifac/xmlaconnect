@@ -333,7 +333,9 @@ public:
 	{
 		m_proxy.soap_endpoint = m_location.c_str();
 
-		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS);
+		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS| SOAP_C_UTFSTRING);
+		soap_imode(&m_proxy, SOAP_C_UTFSTRING);
+
 		if ( -1 == m_session_id ) {
 			begin_session();
 			m_proxy.userid = m_user.c_str();
@@ -381,8 +383,10 @@ public:
 	int execute ( char* statement )
 	{
 		m_proxy.soap_endpoint = m_location.c_str();
-		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS);
-		//soap_omode(&m_proxy,SOAP_XML_INDENT);
+
+		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS| SOAP_C_UTFSTRING);
+		soap_imode(&m_proxy, SOAP_C_UTFSTRING);
+		
 		if ( -1 == m_session_id ) {
 			begin_session();
 			m_proxy.userid = m_user.c_str();
