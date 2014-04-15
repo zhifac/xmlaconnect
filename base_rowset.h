@@ -71,7 +71,7 @@ public:
 			result = handler.discover( Storage::schema_name(), cRestrictions, rgRestrictions);
 		}
 		if ( S_OK != result ) {
-			//make_error( FROM_STRING( handler.faultString(), CP_UTF8 ) );
+			make_error( FROM_STRING( handler.fault_string(), CP_UTF8 ) );
 			return DB_S_ERRORSOCCURRED;
 		}
 

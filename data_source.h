@@ -223,10 +223,10 @@ CLEANUP:
 					switch ( crtProp.dwPropertyID )
 					{
 					case DBPROP_INIT_LOCATION:
-						location = CT2A(crtProp.vValue.bstrVal);
+						location = CT2A(crtProp.vValue.bstrVal, CP_UTF8);
 						break;
 					case DBPROP_INIT_CATALOG:
-						if ( crtProp.vValue.bstrVal )  catalog = CT2A(crtProp.vValue.bstrVal);
+						if ( crtProp.vValue.bstrVal )  catalog = CT2A(crtProp.vValue.bstrVal, CP_UTF8);
 						break;
 					case DBPROP_AUTH_USERID:
 						_tcscpy_s( m_user, 256, crtProp.vValue.bstrVal );
@@ -280,7 +280,7 @@ public:
 		
 		
 		for (  int i = 0; i < 3; ++i ){
-			connection_handler handler( location, std::string(CT2A( m_user )), std::string(CT2A( m_pass )), catalog );
+			connection_handler handler( location, std::string(CT2A( m_user, CP_UTF8 )), std::string(CT2A( m_pass, CP_UTF8 )), catalog );
 			if ( S_OK != handler.execute("") && !handler.valid_credentials() ) {
 				PromptInitialize();
 			} else {

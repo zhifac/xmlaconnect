@@ -33,8 +33,100 @@
 #include "query_translator.h"
 #endif
 
+
 class connection_handler
 {
+public:
+	class tabular_data_access
+	{
+	private:
+		static const unsigned int WORD_WIDTH = 256;
+
+		connection_handler& m_handler;
+		int m_col_count;
+		ATLCOLUMNINFO* m_columns;
+
+		void make_col_info()
+		{
+			m_columns = new ATLCOLUMNINFO[ m_col_count ];
+
+			for( int i = 0; i < m_col_count; ++i )
+			{
+				m_columns[i].pwszName = _wcsdup( CA2W(tabular_header( i ), CP_UTF8) );
+				m_columns[i].pTypeInfo = (ITypeInfo*)NULL; 
+				m_columns[i].iOrdinal = (ULONG)(i + 1); 
+				m_columns[i].dwFlags = 0; 
+				m_columns[i].ulColumnSize = (ULONG)256; 
+				m_columns[i].wType = (DBTYPE) DBTYPE_WSTR; 
+				m_columns[i].bPrecision = (BYTE)0xFF; 
+				m_columns[i].bScale = (BYTE)0xFF; 
+				m_columns[i].cbOffset = WORD_WIDTH*i * sizeof(wchar_t);
+			}
+		}
+
+		void clean_column_info()
+		{
+			if ( nullptr == m_columns ){return;}
+	
+			for ( int i = 0; i < m_col_count; ++i )
+			{
+				delete[] m_columns[i].pwszName;
+			}
+			m_col_count = 0;
+			delete[] m_columns;
+			m_columns = nullptr;
+		}
+
+		const char* tabular_header( const int idx )
+		{
+			if ( 0 == m_handler.m_e_response.cxmla__return__.root.__size ) { return ""; }//preffer empty to null
+			if ( idx >= m_handler.m_e_response.cxmla__return__.root.row[0].__size ){ return ""; }//preffer empty to null
+			return m_handler.m_e_response.cxmla__return__.root.row[0].__array[idx].elementName;
+		}
+	public:
+		tabular_data_access( connection_handler& handler ) 
+			: m_handler( handler )
+			, m_columns( nullptr )
+		{
+			if ( 0 == m_handler.m_e_response.cxmla__return__.root.__size ) 
+			{
+				m_col_count = 0;
+				return;
+			}
+
+			m_col_count = m_handler.m_e_response.cxmla__return__.root.row[0].__size;
+			make_col_info();
+		}
+
+		~tabular_data_access()
+		{
+			clean_column_info();
+		}
+
+		ATLCOLUMNINFO* GetColumnInfo( DBORDINAL* pcCols )
+		{
+			* pcCols = m_col_count;
+			return m_columns;
+		}
+
+		void load_at( int idx, wchar_t* data )
+		{
+			if ( 0 > idx ) { return; }
+			if ( idx >= m_handler.m_e_response.cxmla__return__.root.__size ){ return; }
+
+			for( int i = 0; i < m_col_count; ++i )
+			{
+				wcscpy_s( data, WORD_WIDTH, CA2W(m_handler.m_e_response.cxmla__return__.root.row[idx].__array[i].value, CP_UTF8) );
+				data += WORD_WIDTH;
+			}
+
+			//return m_handler.m_e_response.cxmla__return__.root.row[0].__array[idx].elementName;
+		}
+
+		const int col_count() const { return m_col_count; }
+		const int row_count() const { return m_handler.m_e_response.cxmla__return__.root.__size; }
+		const int data_size() const { return m_col_count * WORD_WIDTH * sizeof(wchar_t); }
+	};
 public:
 	class out_of_bound : public std::runtime_error 
 	{
@@ -52,6 +144,8 @@ private:
 	std::string m_pass;
 	std::string m_catalog;
 	std::vector<int> m_cell_data;
+
+	tabular_data_access* m_tab_data_access;
 private:
 
 	typedef std::unordered_map< soap*, session* > indirection_table_type;
@@ -113,16 +207,16 @@ private:
 					switch ( props[i].rgProperties[j].dwPropertyID )
 					{
 					case DBPROP_INIT_LOCATION:
-						m_location = CT2A(props[i].rgProperties[j].vValue.bstrVal);
+						m_location = CT2A(props[i].rgProperties[j].vValue.bstrVal, CP_UTF8);
 						break;
 					case DBPROP_AUTH_USERID:
-						m_user = CT2A(props[i].rgProperties[j].vValue.bstrVal);
+						m_user = CT2A(props[i].rgProperties[j].vValue.bstrVal, CP_UTF8);
 						break;
 					case DBPROP_AUTH_PASSWORD:
-						m_pass = CT2A(props[i].rgProperties[j].vValue.bstrVal);
+						m_pass = CT2A(props[i].rgProperties[j].vValue.bstrVal, CP_UTF8);
 						break;
 					case DBPROP_INIT_CATALOG:
-						if ( props[i].rgProperties[j].vValue.bstrVal )  m_catalog = CT2A(props[i].rgProperties[j].vValue.bstrVal);
+						if ( props[i].rgProperties[j].vValue.bstrVal )  m_catalog = CT2A(props[i].rgProperties[j].vValue.bstrVal, CP_UTF8);
 						break;
 					}
 				}
@@ -143,7 +237,7 @@ private:
 				{
 					if ( IsEqualGUID( props[i].guidPropertySet, DBPROPSET_SESSION ) ) {
 						if ( DBPROP_CURRENTCATALOG == props[i].rgProperties[j].dwPropertyID ) {
-							std::string buf = CT2A(props[i].rgProperties[j].vValue.bstrVal);
+							std::string buf = CT2A(props[i].rgProperties[j].vValue.bstrVal, CP_UTF8);
 							if ( !buf.empty() )  {
 								std::swap( m_catalog, buf );
 							}
@@ -188,27 +282,27 @@ private:
 			{
 			case 0://CATALOG_NAME
 				if ( VT_BSTR == rgRestrictions[i].vt  ) {
-					where.RestrictionList.CATALOG_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal));
+					where.RestrictionList.CATALOG_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
 				}
 				break;
 			case 2://CUBE_NAME
 				if ( VT_BSTR == rgRestrictions[i].vt  ) {
-					where.RestrictionList.CUBE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal));
+					where.RestrictionList.CUBE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
 				}
 				break;
 			case 4://HIERARCHY_UNIQUE_NAME
 				if ( VT_BSTR == rgRestrictions[i].vt  ) {
-					where.RestrictionList.HIERARCHY_USCOREUNIQUE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal));
+					where.RestrictionList.HIERARCHY_USCOREUNIQUE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
 				}
 				break;
 			case 5://LEVEL_UNIQUE_NAME
 				if ( VT_BSTR == rgRestrictions[i].vt  ) {
-					where.RestrictionList.LEVEL_USCOREUNIQUE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal));
+					where.RestrictionList.LEVEL_USCOREUNIQUE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
 				}
 				break;
 			case 8://MEMBER_UNIQUE_NAME
 				if ( VT_BSTR == rgRestrictions[i].vt  ) {
-					where.RestrictionList.MEMBER_USCOREUNIQUE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal));
+					where.RestrictionList.MEMBER_USCOREUNIQUE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
 				}
 				break;
 			case 11://TREE_OP
@@ -287,7 +381,9 @@ private:
 		m_proxy.header->BeginSession = NULL;
 	}
 public:
-	connection_handler( IUnknown* aSession ) : m_session( nullptr )
+	connection_handler( IUnknown* aSession ) 
+		: m_session( nullptr )
+		, m_tab_data_access( nullptr )
 	{
 		IGetSelf* pGetSelf;
 		aSession->QueryInterface( __uuidof( IGetSelf ) , ( void** ) &pGetSelf );
@@ -316,6 +412,7 @@ public:
 		, m_pass(pass)
 		, m_catalog( catalog )
 		, m_session_id( -1 )
+		, m_tab_data_access( nullptr )
 	{
 		if ( nullptr == fparsehdr ) 
 		{
@@ -327,15 +424,15 @@ public:
 	virtual ~connection_handler()
 	{
 		soap_2_session().erase( &m_proxy );
+		if ( nullptr != m_tab_data_access ) { delete m_tab_data_access; }
 	}
 
 	int discover( char* endpoint, ULONG cRestrictions, const VARIANT* rgRestrictions)
 	{
 		m_proxy.soap_endpoint = m_location.c_str();
 
-		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS| SOAP_C_UTFSTRING);
+		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS | SOAP_C_UTFSTRING);
 		soap_imode(&m_proxy, SOAP_C_UTFSTRING);
-
 		if ( -1 == m_session_id ) {
 			begin_session();
 			m_proxy.userid = m_user.c_str();
@@ -351,7 +448,7 @@ public:
 		load_restrictions( cRestrictions, rgRestrictions, restrictions );
 		xmlns__Properties props;
 		props.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());//make Palo happy		
-		props.PropertyList.LocaleIdentifier = 1048;
+		props.PropertyList.LocaleIdentifier = CP_UTF8;
 		int result = m_proxy.Discover( endpoint, restrictions, props, m_d_response );
 		if ( NULL != m_session && NULL != m_proxy.header && NULL != m_proxy.header->Session && NULL != m_proxy.header->Session->SessionId ) {
 			session::session_table()[ m_session ].id = atoi( m_proxy.header->Session->SessionId );
@@ -382,11 +479,11 @@ public:
 
 	int execute ( char* statement )
 	{
+		bool tabular_result = false;
 		m_proxy.soap_endpoint = m_location.c_str();
-
-		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS| SOAP_C_UTFSTRING);
+		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS | SOAP_C_UTFSTRING);
 		soap_imode(&m_proxy, SOAP_C_UTFSTRING);
-		
+		//soap_omode(&m_proxy,SOAP_XML_INDENT);
 		if ( -1 == m_session_id ) {
 			begin_session();
 			m_proxy.userid = m_user.c_str();
@@ -410,10 +507,27 @@ public:
 #endif
 		command.Statement = statement;
 		xmlns__Properties Properties;
-		Properties.PropertyList.LocaleIdentifier = 1048;
+		Properties.PropertyList.LocaleIdentifier = CP_UTF8;
 		Properties.PropertyList.Content = "Data";
 		Properties.PropertyList.AxisFormat = "TupleFormat";
-		Properties.PropertyList.Format = "Multidimensional";
+		
+		std::string drill_through_test(statement, statement+strlen("DRILLTHROUGH")); 
+		std::transform( drill_through_test.begin(), drill_through_test.end(), drill_through_test.begin(), std::toupper );		
+		
+		if ( nullptr != m_tab_data_access  )
+		{
+			delete m_tab_data_access;
+			m_tab_data_access = nullptr;
+		}
+		if ( drill_through_test == "DRILLTHROUGH" )
+		{
+			tabular_result = true;			
+			Properties.PropertyList.Format = "Tabular";
+		} else
+		{
+			Properties.PropertyList.Format = "Multidimensional";
+		}
+
 		Properties.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());
 		//clear cell data
 		m_cell_data.clear();
@@ -424,9 +538,24 @@ public:
 			session::session_table()[ m_session ].id = atoi( m_proxy.header->Session->SessionId );
 		}
 
+		if ( tabular_result )
+		{
+			m_tab_data_access = new tabular_data_access( *this );
+		}
+		
 		return result;
 	}
-	
+
+	const bool has_tabular_data() const 
+	{ 
+		return nullptr != m_tab_data_access; 
+	}
+
+	tabular_data_access& access_tab_data()
+	{
+		return *m_tab_data_access;
+	}
+
 	bool no_session() 
 	{
 		bool result = m_proxy.fault && 0 == strcmp(m_proxy.fault->faultstring,"Invalid Session id");

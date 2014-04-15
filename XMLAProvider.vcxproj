@@ -85,7 +85,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\workspace\gsoap\gsoap\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\gsoap\gsoap\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -110,7 +110,7 @@
       <ModuleDefinitionFile>.\XMLAProvider.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -119,7 +119,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Work\gsoap\gsoap\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\gsoap\gsoap\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -142,7 +142,7 @@
       <ModuleDefinitionFile>.\XMLAProvider.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -151,7 +151,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Work\gsoap\gsoap\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\gsoap\gsoap\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -178,7 +178,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Version.lib;comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -187,7 +187,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Work\gsoap\gsoap\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\gsoap\gsoap\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -212,7 +212,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Version.lib;comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -250,12 +250,13 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="stdsoap2.cpp">
+    <ClCompile Include="../gsoap/gsoap/stdsoap2.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="tabular_rowset.cpp" />
     <ClCompile Include="ui_elements.cpp" />
     <ClCompile Include="rowset.cpp" />
     <ClCompile Include="XMLAProvider.cpp" />
@@ -289,15 +290,16 @@
     <ClInclude Include="member_row.h" />
     <ClInclude Include="pass_prompt.h" />
     <ClInclude Include="property_row.h" />
-    <ClInclude Include="query_translator.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="row_data.h" />
+    <ClInclude Include="query_translator.h" />
     <ClInclude Include="set_row.h" />
     <ClInclude Include="connection_handler.h" />
     <ClInclude Include="soapH.h" />
     <ClInclude Include="soapStub.h" />
     <ClInclude Include="soapXMLAConnectionProxy.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="tabular_rowset.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="prop_adv_dlg.h" />
     <ClInclude Include="prop_conn_dlg.h" />
@@ -305,11 +307,12 @@
     <ClInclude Include="rowset.h" />
     <ClInclude Include="session.h" />
     <CustomBuild Include="XMLAMethods.h">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\workspace\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Work\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">..\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>
     </CustomBuild>
+    <ClInclude Include="version_info.h" />
     <ClInclude Include="XMLAProvider_i.h" />
   </ItemGroup>
   <ItemGroup>
@@ -318,6 +321,8 @@
   <ItemGroup>
     <None Include="DiscoverResponse.gsoap" />
     <None Include="ExecuteResponse.gsoap" />
+    <None Include="logo.bmp" />
+    <None Include="logo.png" />
     <None Include="Properties.gsoap" />
     <None Include="Restrictions.gsoap" />
     <None Include="XMLAMamespaces.nsmap" />

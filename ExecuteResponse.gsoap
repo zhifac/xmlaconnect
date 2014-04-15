@@ -166,11 +166,31 @@ public:
 	xmlns__Cell*			Cell;	
 };
 
+
+
+class tabularRow {
+public:
+	int						__size;
+	struct XarayRow
+	{
+	public:
+		int					__size;
+		UserDataProp*		__array;
+	}						*__row;	
+};
+
 class xmlns__root {
 public:
 	xmlns__OlapInfo*		OlapInfo;
 	xmlns__Axes*			Axes;
 	xmlns__CellData*		CellData;
+	int						__size;
+	struct arayRow
+	{
+	public:
+		int					__size;
+		UserDataProp*		__array;
+	}						*row;	
 };
 
 class cxmla__executeReturn {

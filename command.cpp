@@ -22,6 +22,7 @@
 
 #include "stdafx.h"
 #include "rowset.h"
+#include "tabular_rowset.h"
 #include "session.h"
 #include "connection_handler.h"
 #include "axis_rowset.h"
@@ -35,7 +36,6 @@ STDMETHODIMP command::Execute(IUnknown * pUnkOuter, REFIID riid, DBPARAMS * pPar
 
 	mConnectionHandler.reset( new connection_handler( pSessUnk ) );
 	pSessUnk->Release();
-//	m_strCommandText.ToLower();
 	int result = mConnectionHandler->execute( CW2A( m_strCommandText.m_str, CP_UTF8 ) );
 	if ( mConnectionHandler->no_session() ) {
 		result = mConnectionHandler->execute( CW2A( m_strCommandText.m_str, CP_UTF8 ) );
@@ -44,8 +44,6 @@ STDMETHODIMP command::Execute(IUnknown * pUnkOuter, REFIID riid, DBPARAMS * pPar
 		make_error( FROM_STRING( mConnectionHandler->fault_string(), CP_UTF8 ) );
 		return E_FAIL;
 	}
-
-	rowset* pRowset;
 
 	//RIA: this is to corect a "contradiction" in the curent ATL implementation. 
 	
@@ -78,7 +76,17 @@ STDMETHODIMP command::Execute(IUnknown * pUnkOuter, REFIID riid, DBPARAMS * pPar
 
 	if ( InlineIsEqualGUID(IID_NULL, riid) ) {
 		IUnknown* dummy;
-		HRESULT hr = CreateRowset(pUnkOuter, riid, pParams, pcRowsAffected, &dummy, pRowset);
+		HRESULT hr;
+		
+		if ( mConnectionHandler->has_tabular_data() )
+		{
+			tabular_rowset*		pRowset;
+			hr = CreateRowset(pUnkOuter, riid, pParams, pcRowsAffected, &dummy, pRowset);
+		} else
+		{
+			rowset*				pRowset;
+			hr = CreateRowset(pUnkOuter, riid, pParams, pcRowsAffected, &dummy, pRowset);
+		}
 		if ( SUCCEEDED( hr ) ) {
 			dummy->Release();
 		}
@@ -86,7 +94,15 @@ STDMETHODIMP command::Execute(IUnknown * pUnkOuter, REFIID riid, DBPARAMS * pPar
 		return hr;
 	}
 
-	return CreateRowset(pUnkOuter, riid, pParams, pcRowsAffected, ppRowset, pRowset);
+	if ( mConnectionHandler->has_tabular_data() )
+	{
+		tabular_rowset*		pRowset;
+		return CreateRowset(pUnkOuter, riid, pParams, pcRowsAffected, ppRowset, pRowset);
+	} else
+	{
+		rowset*				pRowset;
+		return CreateRowset(pUnkOuter, riid, pParams, pcRowsAffected, ppRowset, pRowset);
+	}
 }
 
 STDMETHODIMP command::GetAxisRowset(IUnknown * pUnkOuter, REFIID riid, void * pParams, DBROWCOUNT * pcRowsAffected, IUnknown ** ppRowset)

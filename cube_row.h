@@ -58,7 +58,7 @@ public:
 		ZeroMemory( &m_creation_time, sizeof( m_creation_time ) );
 
 		m_last_data_update = m_last_schema_update = m_creation_time;
-		m_drill_throught = 0;
+		m_drill_throught = a_row.IS_USCOREDRILLTHROUGH_USCOREENABLED;
 	}
 
 	static char* schema_name() { return "MDSCHEMA_CUBES"; }

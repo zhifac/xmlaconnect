@@ -64,9 +64,6 @@
     <ClCompile Include="soapC.cpp">
       <Filter>gsoap\auto_generated</Filter>
     </ClCompile>
-    <ClCompile Include="stdsoap2.cpp">
-      <Filter>gsoap</Filter>
-    </ClCompile>
     <ClCompile Include="execute_response.cpp">
       <Filter>gsoap</Filter>
     </ClCompile>
@@ -78,6 +75,12 @@
     </ClCompile>
     <ClCompile Include="command.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tabular_rowset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="../gsoap/gsoap/stdsoap2.cpp">
+      <Filter>gsoap</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +174,12 @@
     <ClInclude Include="query_translator.h">
       <Filter>Header Files\compatibility</Filter>
     </ClInclude>
+    <ClInclude Include="tabular_rowset.h">
+      <Filter>Header Files\com</Filter>
+    </ClInclude>
+    <ClInclude Include="version_info.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="XMLAProvider.rc">
@@ -210,6 +219,12 @@
     </None>
     <None Include="XMLAMamespaces.nsmap">
       <Filter>gsoap\def</Filter>
+    </None>
+    <None Include="logo.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="logo.png">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

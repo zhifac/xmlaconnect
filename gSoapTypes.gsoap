@@ -1,2 +1,2 @@
 typedef  char* xsd__string;
-typedef bool xsd__bool;
+typedef  enum boolean_enum {false_, true_} xsd__boolean;

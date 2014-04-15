@@ -66,16 +66,17 @@ LRESULT prop_conn_dlg::OnBnClickedButton1(WORD /*wNotifyCode*/, WORD /*wID*/, HW
 
 	XMLAConnectionProxy proxy( location.c_str() );
 	soap_omode(&proxy, SOAP_XML_DEFAULTNS);
+	//soap_omode(&proxy,SOAP_XML_INDENT);
 	cxmla__DiscoverResponse response;
 
 	xmlns__Restrictions restrictions;
 
 	restrictions.RestrictionList.CATALOG_USCORENAME = (char*)db.c_str();
 
-	BSessionType begin_session;
+//	BSessionType begin_session;
 
-	SOAP_ENV__Header header;
-	header.BeginSession = &begin_session;
+//	SOAP_ENV__Header header1;
+//	header1.BeginSession = &begin_session;
 
 	proxy.header = new SOAP_ENV__Header();
 	proxy.header->BeginSession = new BSessionType();
@@ -88,7 +89,7 @@ LRESULT prop_conn_dlg::OnBnClickedButton1(WORD /*wNotifyCode*/, WORD /*wID*/, HW
 	proxy.passwd = pass.c_str();
 
 	xmlns__Properties props;
-	props.PropertyList.LocaleIdentifier = 1048;
+	props.PropertyList.LocaleIdentifier = CP_UTF8;
 	int ret = proxy.Discover( "MDSCHEMA_CUBES", restrictions, props, response );
 
 	if ( S_OK == ret )
@@ -155,6 +156,7 @@ LRESULT prop_conn_dlg::OnCbnDropdownCombo1(WORD /*wNotifyCode*/, WORD /*wID*/, H
 
 	XMLAConnectionProxy proxy( location.c_str() );
 	soap_omode(&proxy, SOAP_XML_DEFAULTNS);
+	//soap_omode(&proxy,SOAP_XML_INDENT);
 	cxmla__DiscoverResponse response;
 
 	//restrictions here
@@ -175,8 +177,13 @@ LRESULT prop_conn_dlg::OnCbnDropdownCombo1(WORD /*wNotifyCode*/, WORD /*wID*/, H
 	proxy.userid = user.c_str();
 	proxy.passwd = pass.c_str();
 	xmlns__Properties props;
-	props.PropertyList.LocaleIdentifier = 1048;
+	props.PropertyList.LocaleIdentifier = CP_UTF8;
 	proxy.Discover( "DBSCHEMA_CATALOGS", restrictions, props, response );
+
+	if ( SOAP_FAULT == proxy.error ) {
+		MessageBox( CA2W( proxy.fault->faultstring, CP_UTF8) , TEXT( "Error" ), MB_ICONERROR );
+		return 1;
+	}
 
 	for ( int i = 0, e = response.cxmla__return__.root.__rows.__size; i < e; ++i )
 	{
