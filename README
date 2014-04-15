@@ -1,3 +1,16 @@
+Changes 15-Apr-2014
+
+The Visual Studio 2010 solution has been cleaned-up with respect to gSOAP files. It now expects gsoap to be on a folder on the same level with the provider as shown below:
+
+\
+|
+----XMLA Code
+|
+----gsoap
+
+All the paths in the solution are now relative to the above layout. This was introduced in order to help compilation. Everything one has to do is to download the provider, download gsoap, respect the configuration above and build. Don't forget to build first the debug version so gsoap can generate files. 
+
+
 How to build
 
 In theory you can build this with Windows SDK. In practice this was never tried yet. In the repo there is a Visual Studio 2010 solution that works.
