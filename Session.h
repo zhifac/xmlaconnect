@@ -27,6 +27,7 @@
 class catalog_rowset;
 class cube_rowset;
 class dimension_rowset;
+class function_rowset;
 class hierarchy_rowset;
 class level_rowset;
 class member_rowset;
@@ -44,6 +45,7 @@ class ATL_NO_VTABLE session :
 	public IObjectWithSiteSessionImpl<session>,
 	public IDBSchemaRowsetImpl<session>,
 	public IDBCreateCommandImpl<session, command>,
+	public IInternalConnectionImpl<session>,
 	public IGetSelf	, 
 	public ISupportErrorInfo
 {
@@ -150,6 +152,7 @@ BEGIN_COM_MAP(session)
 	COM_INTERFACE_ENTRY(IObjectWithSite)
 	COM_INTERFACE_ENTRY(IDBCreateCommand)
 	COM_INTERFACE_ENTRY(IDBSchemaRowset)
+	COM_INTERFACE_ENTRY(IInternalConnection)
 	COM_INTERFACE_ENTRY(ISupportErrorInfo)
 	COM_INTERFACE_ENTRY(IGetSelf)
 END_COM_MAP()
@@ -158,6 +161,7 @@ BEGIN_SCHEMA_MAP(session)
 	SCHEMA_ENTRY( DBSCHEMA_CATALOGS , catalog_rowset )
 	SCHEMA_ENTRY( MDSCHEMA_CUBES , cube_rowset )
 	SCHEMA_ENTRY( MDSCHEMA_DIMENSIONS, dimension_rowset )
+	SCHEMA_ENTRY( MDSCHEMA_FUNCTIONS, function_rowset )
 	SCHEMA_ENTRY( MDSCHEMA_HIERARCHIES, hierarchy_rowset )
 	SCHEMA_ENTRY( MDSCHEMA_LEVELS, level_rowset )
 	SCHEMA_ENTRY( MDSCHEMA_MEMBERS, member_rowset )
@@ -172,6 +176,7 @@ END_SCHEMA_MAP()
 #include "catalog_row.h"
 #include "cube_row.h"
 #include "dimension_row.h"
+#include "function_row.h"
 #include "hierarchy_row.h"
 #include "level_row.h"
 #include "measure_row.h"
@@ -179,9 +184,11 @@ END_SCHEMA_MAP()
 #include "property_row.h"
 #include "set_row.h"
 #include "base_rowset.h"
+
 class catalog_rowset : public base_rowset< catalog_rowset, catalog_row, session >{};
 class cube_rowset : public base_rowset< cube_rowset, cube_row, session >{};
 class dimension_rowset : public base_rowset< dimension_rowset, dimension_row, session >{};
+class function_rowset : public base_rowset< function_rowset, function_row, session >{};
 class hierarchy_rowset : public base_rowset< hierarchy_rowset, hierarchy_row, session >{};
 class level_rowset : public base_rowset< level_rowset, level_row, session >{};
 class member_rowset : public base_rowset< member_rowset, member_row, session >{};

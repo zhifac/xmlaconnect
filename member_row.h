@@ -46,6 +46,7 @@ public:
 	unsigned long   m_parent_count;
 	wchar_t         m_description[256];
 
+
 	member_row( row& a_row )
 	{
 		wcscpy_s( m_catalog, 256, FROM_STRING( a_row.CATALOG_USCORENAME, CP_UTF8 ) );
@@ -66,6 +67,7 @@ public:
 		m_children_cardinality = get_int(a_row.CHILDREN_USCORECARDINALITY);
 		m_parent_level = get_int(a_row.PARENT_USCORELEVEL);
 		m_parent_count = get_int(a_row.PARENT_USCORECOUNT);
+		
 	}
 	
 	EMPTY_CONSTRUCTOR(member_row);
@@ -84,7 +86,7 @@ public:
 	PROVIDER_COLUMN_ENTRY_WSTR( "MEMBER_NAME", 9, m_member_name )
 	PROVIDER_COLUMN_ENTRY_WSTR( "MEMBER_UNIQUE_NAME", 10, m_member_unique_name )
 	PROVIDER_COLUMN_ENTRY_TYPE( "MEMBER_TYPE", 11, VT_I4, m_member_type )
-	PROVIDER_COLUMN_ENTRY_TYPE( "LEVEL_GUID", 12, VT_CLSID, m_member_guid )
+	PROVIDER_COLUMN_ENTRY_TYPE( "MEMBER_GUID", 12, VT_CLSID, m_member_guid )
 	PROVIDER_COLUMN_ENTRY_WSTR( "MEMBER_CAPTION", 13, m_member_caption )
 	PROVIDER_COLUMN_ENTRY_TYPE( "CHILDREN_CARDINALITY", 14, VT_UI4, m_children_cardinality )
 	PROVIDER_COLUMN_ENTRY_TYPE( "PARENT_LEVEL", 15, VT_UI4, m_parent_level )

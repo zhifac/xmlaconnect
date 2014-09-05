@@ -34,6 +34,8 @@ class rowset:
 	public IErrorRecordsImpl< rowset>,
 	public IMDDataset
 {
+	friend class row_data;
+private:
 	connection_handler* mConnectionHandler;
 public:
 BEGIN_COM_MAP(rowset)

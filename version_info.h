@@ -22,6 +22,6 @@
 					versioninfo
 */
 
-#define CRT_FILE_VERSION_STRING "1.0.0.0"
-#define CRT_FILE_VERSION_NUMBERS 1,0,0,0
+#define CRT_FILE_VERSION_STRING "1.0.0.1"
+#define CRT_FILE_VERSION_NUMBERS 1,0,0,1
 

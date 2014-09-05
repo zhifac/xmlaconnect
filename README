@@ -1,3 +1,25 @@
+Changes 5-September-2014
+
+1. openssl added
+
+It  expects openssl to be a folder on the same level with the provider as shown below:
+
+\
+|
+----XMLA Code
+|
+----openssl
+	--lib
+		--i386
+			--static
+		--x86_64
+			--static
+
+2. Support for custom properties in dimension and cell properties
+
+3. IDBInfo support
+
+
 Changes 15-Apr-2014
 
 The Visual Studio 2010 solution has been cleaned-up with respect to gSOAP files. It now expects gsoap to be on a folder on the same level with the provider as shown below:

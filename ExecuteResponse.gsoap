@@ -3,11 +3,25 @@ extern typedef struct UserPropStruct {
 	const char*		value;
 } UserDataProp; 
 
-class arrayUserProp {
+extern typedef struct arrayUserPropStruct {
 public:
 	int					__size;
 	UserDataProp*		__array;
-};
+} arrayUserProp;
+
+extern typedef struct CellPropStruct {
+
+	const char*		elementName;
+	const char*		name;
+	const char*		value;
+} CellDataProp;
+
+
+extern typedef struct arrayCellPropStruct {
+public:
+	int					__size;
+	CellDataProp*		__array;
+}arrayCellProp;
 
 class	xmlns__Cube {
 public:
@@ -102,11 +116,15 @@ public:
 	xmlns__AxisInfo*		AxisInfo;
 };
 
+class xmlns__Value{
+public:
+	xsd__string		@name;
+};
+
 class xmlns__CellInfo {
 public:
-	struct xmlns__ValueCellInfo {
-		xsd__string			@name;
-	} Value;
+	xmlns__Value* Value;
+	arrayCellProp	__cellProps;
 };
 
 
@@ -157,13 +175,14 @@ public:
 		xsd__string		@xsi__type;
 		xsd__string		__v;
 	} Value;
+	arrayCellProp __cellProps;
 
 };
 
 class xmlns__CellData {
 public:
 	int						__size;
-	xmlns__Cell*			Cell;	
+	xmlns__Cell*			Cell;
 };
 
 

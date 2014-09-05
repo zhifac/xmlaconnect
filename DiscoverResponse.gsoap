@@ -61,6 +61,24 @@ public:
 	xsd__string		ProviderName;
 	xsd__string		ProviderType;
 	xsd__string		AuthenticationMode;
+	xsd__string		FUNCTION_USCORENAME;
+	xsd__string		PARAMETER_USCORELIST;
+	xsd__string		RETURN_USCORETYPE;
+	xsd__string		ORIGIN;
+	xsd__string		INTERFACE_USCORENAME;
+	xsd__string		Keyword;
+	xsd__string		LiteralName;
+	xsd__string		LiteralValue;
+	xsd__string		LiteralInvalidChars;
+	xsd__string		LiteralInvalidStartingChars;
+	int				LiteralMaxLength;	
+	int				LiteralNameEnumValue;
+	xsd__string		SET_USCORENAME;
+	xsd__string		SCOPE;
+	xsd__string		EXPRESSION;
+	xsd__string		SET_USCORECAPTION;
+	xsd__string		SET_USCOREDISPLAY_USCOREFOLDER;
+	xsd__string		DIMENSIONS;
 	}*  row;	
 };
 

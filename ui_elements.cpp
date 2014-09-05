@@ -90,6 +90,8 @@ LRESULT prop_conn_dlg::OnBnClickedButton1(WORD /*wNotifyCode*/, WORD /*wID*/, HW
 
 	xmlns__Properties props;
 	props.PropertyList.LocaleIdentifier = CP_UTF8;
+
+	soap_ssl_client_context( &proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
 	int ret = proxy.Discover( "MDSCHEMA_CUBES", restrictions, props, response );
 
 	if ( S_OK == ret )
@@ -178,6 +180,9 @@ LRESULT prop_conn_dlg::OnCbnDropdownCombo1(WORD /*wNotifyCode*/, WORD /*wID*/, H
 	proxy.passwd = pass.c_str();
 	xmlns__Properties props;
 	props.PropertyList.LocaleIdentifier = CP_UTF8;
+
+	soap_ssl_client_context( &proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+
 	proxy.Discover( "DBSCHEMA_CATALOGS", restrictions, props, response );
 
 	if ( SOAP_FAULT == proxy.error ) {

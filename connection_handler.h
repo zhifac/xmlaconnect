@@ -146,6 +146,10 @@ private:
 	std::vector<int> m_cell_data;
 
 	tabular_data_access* m_tab_data_access;
+
+	ATL::ATLCOLUMNINFO* m_execute_colls;
+	size_t m_execute_col_count;
+	std::vector< std::pair< std::string, int > > m_indirection;//0 will be value, all user props will substract 1
 private:
 
 	typedef std::unordered_map< soap*, session* > indirection_table_type;
@@ -258,7 +262,7 @@ private:
 		return S_OK;
 	}
 
-	void load_restrictions( ULONG cRestrictions, const VARIANT* rgRestrictions, xmlns__Restrictions& where )
+	void load_restrictions( ULONG cRestrictions, const VARIANT* rgRestrictions, xmlns__Restrictions& where, bool add_cat = true )
 	{
 		//TODO: validate memory consumption due to the strdup here
 
@@ -269,9 +273,9 @@ private:
 		where.RestrictionList.MEMBER_USCOREUNIQUE_USCORENAME = NULL;
 		where.RestrictionList.LEVEL_USCOREUNIQUE_USCORENAME = NULL;
 		where.RestrictionList.TREE_USCOREOP = NULL;
+		where.RestrictionList.PROPERTY_USCORETYPE = NULL;
 
-
-		if ( !m_catalog.empty() ) {
+		if ( !m_catalog.empty() && add_cat ) {
 			where.RestrictionList.CATALOG_USCORENAME = _strdup(m_catalog.c_str());//Allocates for consistence (all the other do strdup)
 		}
 
@@ -290,6 +294,11 @@ private:
 					where.RestrictionList.CUBE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
 				}
 				break;
+			case 3://SET_NAME
+				if ( VT_BSTR == rgRestrictions[i].vt  ) {
+					where.RestrictionList.SET_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
+				}
+				break;
 			case 4://HIERARCHY_UNIQUE_NAME
 				if ( VT_BSTR == rgRestrictions[i].vt  ) {
 					where.RestrictionList.HIERARCHY_USCOREUNIQUE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
@@ -300,9 +309,13 @@ private:
 					where.RestrictionList.LEVEL_USCOREUNIQUE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
 				}
 				break;
-			case 8://MEMBER_UNIQUE_NAME
-				if ( VT_BSTR == rgRestrictions[i].vt  ) {
+			case 8:
+				if ( VT_BSTR == rgRestrictions[i].vt  ) {//MEMBER_UNIQUE_NAME
 					where.RestrictionList.MEMBER_USCOREUNIQUE_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
+				} else if ( VT_I2 == rgRestrictions[i].vt ) {//PROPERTY_TYPE
+					char buf[20];
+					_itoa_s( rgRestrictions[i].iVal, buf, 20, 10 );
+					where.RestrictionList.PROPERTY_USCORETYPE = _strdup( buf );
 				}
 				break;
 			case 11://TREE_OP
@@ -310,9 +323,9 @@ private:
 					char buf[20];
 					_itoa_s( rgRestrictions[i].uiVal, buf, 20, 10 );
 					where.RestrictionList.TREE_USCOREOP = _strdup( buf );
-				} else if ( VT_EMPTY == rgRestrictions[i].vt  ) {
-					where.RestrictionList.TREE_USCOREOP = "0";
-				}
+				} //else if ( VT_EMPTY == rgRestrictions[i].vt  ) {
+				//	where.RestrictionList.TREE_USCOREOP = "0";
+				//}
 				break;
 			}
 		}
@@ -320,6 +333,11 @@ private:
 
 	void unload_restrictions( xmlns__Restrictions& where )
 	{
+		if ( NULL != where.RestrictionList.PROPERTY_USCORETYPE ) 
+		{
+			free( where.RestrictionList.PROPERTY_USCORETYPE );
+			where.RestrictionList.PROPERTY_USCORETYPE = NULL;
+		}
 		if ( NULL != where.RestrictionList.PropertyName ) 
 		{
 			free( where.RestrictionList.PropertyName );
@@ -355,6 +373,11 @@ private:
 			free( where.RestrictionList.TREE_USCOREOP );
 			where.RestrictionList.TREE_USCOREOP = NULL; 
 		}
+		if ( NULL != where.RestrictionList.SET_USCORENAME )
+		{
+			free( where.RestrictionList.SET_USCORENAME );
+			where.RestrictionList.SET_USCORENAME = NULL;
+		}
 	}
 
 private:
@@ -380,6 +403,83 @@ private:
 		m_proxy.header->EndSession = NULL;
 		m_proxy.header->BeginSession = NULL;
 	}
+
+	void safe_delete_column_headers()
+	{
+		if ( nullptr != m_execute_colls ) 
+		{ 
+			for ( size_t i = 0; i < m_execute_col_count; ++i )
+			{
+				delete[] m_execute_colls[i].pwszName;
+			}
+			delete[] m_execute_colls;
+			m_execute_colls = nullptr;
+		}
+		m_indirection.clear();
+	}
+
+	void form_column_headers()
+	{
+		safe_delete_column_headers();
+
+		if ( nullptr == m_e_response.cxmla__return__.root.OlapInfo ) { return; }
+
+		m_execute_colls = new ATLCOLUMNINFO[ m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__size + 2 ];	
+		DBLENGTH pos = 0;
+		size_t crt = 0;
+
+
+		m_execute_colls[crt].pwszName = _wcsdup( L"CELL_ORDINAL" );
+		m_execute_colls[crt].pTypeInfo = (ITypeInfo*)nullptr;
+		m_execute_colls[crt].iOrdinal = crt + 1;
+		m_execute_colls[crt].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
+		m_execute_colls[crt].ulColumnSize = sizeof(unsigned long);
+		m_execute_colls[crt].wType = DBTYPE_UI4;
+		m_execute_colls[crt].bPrecision = 0;
+		m_execute_colls[crt].bScale = 0;
+		m_execute_colls[crt].cbOffset = pos;
+		memset( &( m_execute_colls[crt].columnid ), 0, sizeof( DBID ));
+	
+		pos += m_execute_colls[crt].ulColumnSize;
+		++crt;
+
+		if ( nullptr != m_e_response.cxmla__return__.root.OlapInfo->CellInfo.Value )
+		{			
+			m_execute_colls[crt].pwszName = _wcsdup( FROM_STRING( m_e_response.cxmla__return__.root.OlapInfo->CellInfo.Value->name, CP_UTF8 ) );
+			m_execute_colls[crt].pTypeInfo = (ITypeInfo*)nullptr;
+			m_execute_colls[crt].iOrdinal = crt + 1;
+			m_execute_colls[crt].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
+			m_execute_colls[crt].ulColumnSize = sizeof(VARIANT);
+			m_execute_colls[crt].wType = DBTYPE_VARIANT;
+			m_execute_colls[crt].bPrecision = 0;
+			m_execute_colls[crt].bScale = 0;
+			m_execute_colls[crt].cbOffset = pos;
+			memset( &( m_execute_colls[crt].columnid ), 0, sizeof( DBID ));
+	
+			pos += m_execute_colls[crt].ulColumnSize;
+			++crt;
+			m_indirection.push_back( std::make_pair( std::string("Value"), 0 )  );
+		}
+
+		for ( int i = 0; i < m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__size; ++i )
+		{
+			m_execute_colls[crt].pwszName = _wcsdup( FROM_STRING( m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__array[i].name, CP_UTF8 ) );
+			m_execute_colls[crt].pTypeInfo = (ITypeInfo*)nullptr;
+			m_execute_colls[crt].iOrdinal = crt + 1;
+			m_execute_colls[crt].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
+			m_execute_colls[crt].ulColumnSize = sizeof(VARIANT);
+			m_execute_colls[crt].wType = DBTYPE_VARIANT;
+			m_execute_colls[crt].bPrecision = 0;
+			m_execute_colls[crt].bScale = 0;
+			m_execute_colls[crt].cbOffset = pos;
+			memset( &( m_execute_colls[crt].columnid ), 0, sizeof( DBID ));
+	
+			pos += m_execute_colls[crt].ulColumnSize;
+			++crt;
+			m_indirection.push_back( std::make_pair( std::string( m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__array[i].elementName ), -1 )  );
+		}
+		m_execute_col_count = crt;
+	}
 public:
 	connection_handler( IUnknown* aSession ) 
 		: m_session( nullptr )
@@ -401,8 +501,10 @@ public:
 			fparsehdr = m_proxy.fparsehdr;
 		}
 		m_proxy.fparsehdr = http_post_parse_header;
+		soap_ssl_client_context( &m_proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
 
 		soap_2_session()[ &m_proxy ] = m_session;
+		m_execute_colls = nullptr;
 	}
 
 	connection_handler( const std::string& location, const std::string& user, const std::string& pass, const std::string& catalog )
@@ -419,12 +521,15 @@ public:
 			fparsehdr = m_proxy.fparsehdr;
 		}
 		m_proxy.fparsehdr = http_post_parse_header;
+		soap_ssl_client_context( &m_proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+		m_execute_colls = nullptr;
 	}
 
 	virtual ~connection_handler()
 	{
 		soap_2_session().erase( &m_proxy );
 		if ( nullptr != m_tab_data_access ) { delete m_tab_data_access; }
+		safe_delete_column_headers();
 	}
 
 	int discover( char* endpoint, ULONG cRestrictions, const VARIANT* rgRestrictions)
@@ -433,6 +538,7 @@ public:
 
 		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS | SOAP_C_UTFSTRING);
 		soap_imode(&m_proxy, SOAP_C_UTFSTRING);
+		
 		if ( -1 == m_session_id ) {
 			begin_session();
 			m_proxy.userid = m_user.c_str();
@@ -443,11 +549,11 @@ public:
 			m_proxy.passwd = m_pass.c_str();
 			session();
 		}	
-
 		xmlns__Restrictions restrictions;
-		load_restrictions( cRestrictions, rgRestrictions, restrictions );
+
+		load_restrictions( cRestrictions, rgRestrictions, restrictions, strcmp("DISCOVER_LITERALS", endpoint) != 0 );
 		xmlns__Properties props;
-		props.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());//make Palo happy		
+		props.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());//make Palo happy	
 		props.PropertyList.LocaleIdentifier = CP_UTF8;
 		int result = m_proxy.Discover( endpoint, restrictions, props, m_d_response );
 		if ( NULL != m_session && NULL != m_proxy.header && NULL != m_proxy.header->Session && NULL != m_proxy.header->Session->SessionId ) {
@@ -483,6 +589,7 @@ public:
 		m_proxy.soap_endpoint = m_location.c_str();
 		soap_omode(&m_proxy, SOAP_XML_DEFAULTNS | SOAP_C_UTFSTRING);
 		soap_imode(&m_proxy, SOAP_C_UTFSTRING);
+		
 		//soap_omode(&m_proxy,SOAP_XML_INDENT);
 		if ( -1 == m_session_id ) {
 			begin_session();
@@ -543,6 +650,9 @@ public:
 			m_tab_data_access = new tabular_data_access( *this );
 		}
 		
+
+		form_column_headers();
+
 		return result;
 	}
 
@@ -591,7 +701,13 @@ public:
 		return ( NULL == strstr( m_proxy.fault->faultstring, "ORA-01005" )  && NULL == strstr( m_proxy.fault->faultstring, "ORA-01017" ) );
 	}
 
-	VARIANT at( DBORDINAL index )
+	ATL::ATLCOLUMNINFO* column_info( DBORDINAL* pcInfo )
+	{
+		*pcInfo = m_execute_col_count;
+		return m_execute_colls;
+	}
+
+	VARIANT at( DBORDINAL index, size_t indirection )
 	{
 		VARIANT result;
 		result.vt = VT_NULL;
@@ -614,42 +730,86 @@ public:
 			return result;
 		}
 
-		_Value& val = m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].Value;
+		//will only test once for user defined props
+
+		if ( -1 == m_indirection[indirection-2].second )
+		{
+			m_indirection[indirection-2].second = -2;
+			for ( int i = 0; i < m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__size; ++i )
+			{
+				if ( 0 == strcmp( m_indirection[indirection-2].first.c_str(), m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__array[i].elementName ) )
+				{
+					m_indirection[indirection-2].second = i+1;
+					break;
+				}
+			}
+		}
+
+		switch ( m_indirection[indirection-2].second )
+		{
+
+		case 0://value
+		{
+			_Value& val = m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].Value;
 		
-		if ( 0 == strcmp( val.xsi__type, "xsd:double" ) ) {
-			result.vt = VT_R8;
-			if ( NULL == val.__v ) {
+			if ( 0 == strcmp( val.xsi__type, "xsd:double" ) ) {
+				result.vt = VT_R8;
+				if ( NULL == val.__v ) {
+					result.bstrVal = NULL;
+					result.vt = VT_BSTR;
+				} else {
+					result.dblVal = atof( val.__v );
+				}
+			} else if ( 0 == strcmp( val.xsi__type, "xsd:string" ) ) {
+				result.vt = VT_BSTR;
+				if ( NULL != val.__v ) {
+					result.bstrVal = SysAllocString( CA2W( val.__v, CP_UTF8 ) );
+				} else {
+					result.bstrVal = NULL;
+				}
+			} else if ( 0 == strcmp( val.xsi__type, "xsd:empty" ) ) {
 				result.bstrVal = NULL;
 				result.vt = VT_BSTR;
+			} else if ( 0 == strcmp( val.xsi__type, "xsd:int" ) ) {
+				result.vt = VT_I4;
+				if ( NULL == val.__v ) {
+					result.bstrVal = NULL;
+					result.vt = VT_BSTR;
+				} else {
+					result.intVal = atoi( val.__v );
+				}
 			} else {
-				result.dblVal = atof( val.__v );
-			}
-		} else if ( 0 == strcmp( val.xsi__type, "xsd:string" ) ) {
-			result.vt = VT_BSTR;
-			if ( NULL != val.__v ) {
-				result.bstrVal = SysAllocString( CA2W( val.__v, CP_UTF8 ) );
-			} else {
-				result.bstrVal = NULL;
-			}
-		} else if ( 0 == strcmp( val.xsi__type, "xsd:empty" ) ) {
-			result.bstrVal = NULL;
-			result.vt = VT_BSTR;
-		} else if ( 0 == strcmp( val.xsi__type, "xsd:int" ) ) {
-			result.vt = VT_I4;
-			if ( NULL == val.__v ) {
-				result.bstrVal = NULL;
+				//handle unknown as string
 				result.vt = VT_BSTR;
-			} else {
-				result.intVal = atoi( val.__v );
+				if ( NULL != val.__v ) {
+					result.bstrVal = SysAllocString( CA2W( val.__v, CP_UTF8 ) );
+				} else {
+					result.bstrVal = NULL;
+				}
 			}
-		} else {
-			//handle unknown as string
-			result.vt = VT_BSTR;
-			if ( NULL != val.__v ) {
-				result.bstrVal = SysAllocString( CA2W( val.__v, CP_UTF8 ) );
-			} else {
-				result.bstrVal = NULL;
+		}
+		break;
+
+		default:
+		{			
+			char* data = nullptr;
+			if ( m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__size >= m_indirection[indirection-2].second )
+			{
+				data = const_cast<char*>( m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__array[m_indirection[indirection-2].second-1].value );
 			}
+			if ( data ) {
+				result.vt = VT_BSTR;
+				result.bstrVal = SysAllocString( CA2W( data, CP_UTF8 ) );
+			} else {
+				result.vt = VT_EMPTY;
+			}	
+		}
+		break;
+
+		case -2:
+			result.vt = VT_EMPTY;
+			break;
+
 		}
 
 		return result;
@@ -680,9 +840,12 @@ public:
 		MDAXISINFO* axisInfo = new MDAXISINFO[*pcAxes];
 		for ( DBCOUNTITEM i = 0; i < *pcAxes; ++i ) {
 			axisInfo[idx].cbSize = sizeof( MDAXISINFO );
+			axisInfo[idx].rgcColumns = nullptr;
+			axisInfo[idx].rgpwszDimensionNames = nullptr;
 			axisInfo[idx].cCoordinates = m_e_response.cxmla__return__.root.Axes->Axis[idx].Tuples.__size;//count on the same order
 			axisInfo[idx].cDimensions = m_e_response.cxmla__return__.root.OlapInfo->AxesInfo.AxisInfo[idx].__size;
 			std::string name( m_e_response.cxmla__return__.root.OlapInfo->AxesInfo.AxisInfo[idx].name );
+			std::transform( name.begin(), name.end(), name.begin(), std::tolower );
 			if ( name.substr( 0, 4 ) == "axis" ) {
 				axisInfo[idx].iAxis = atoi( name.substr(4, name.size() ).c_str() );
 			} else {
@@ -720,6 +883,7 @@ public:
 	void free_axis_info( DBCOUNTITEM   cAxes, MDAXISINFO   *rgAxisInfo )
 	{
 		for ( DBCOUNTITEM i = 0; i < cAxes; ++i ) {
+			if ( 0 == rgAxisInfo[i].cDimensions ) { continue; }
 			delete[] rgAxisInfo[i].rgcColumns;
 			for ( DBCOUNTITEM j = 0; j < rgAxisInfo[i].cDimensions; ++j ) {
 				delete[] rgAxisInfo[i].rgpwszDimensionNames[j];

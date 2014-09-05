@@ -26,6 +26,11 @@
 #include "XMLAMamespaces.nsmap"
 
 
+ATL::ATLCOLUMNINFO* row_data::GetColumnInfo( void* pv, DBORDINAL* pcInfo )
+{
+	return (static_cast<rowset*>(pv))->mConnectionHandler->column_info( pcInfo );
+}
+
 
 HRESULT rowset::Execute(DBPARAMS * /*pParams*/, DBROWCOUNT* pcRowsAffected)
 {
@@ -76,10 +81,15 @@ STDMETHODIMP rowset::GetCellData(
 				{
 					switch ( bind->pBindings[i].iOrdinal )
 					{
-					case row_data::POSITION_VALUE:
+					case row_data::CELL_ORDINAL_POS:
+						(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) )->vt = VT_I4;
+						(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) )->ulVal = (ULONG) crtCell;
+						status = DBSTATUS_S_OK;
+						break;
+					default:
 						try
 						{
-							VARIANT cell_data = mConnectionHandler->at( crtCell );
+							VARIANT cell_data = mConnectionHandler->at( crtCell, bind->pBindings[i].iOrdinal );
 							*(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) ) = cell_data;
 							status = DBSTATUS_S_OK;
 						}
@@ -89,15 +99,12 @@ STDMETHODIMP rowset::GetCellData(
 							result = DB_S_ENDOFROWSET;
 						}
 						break;
-					case row_data::CELL_ORDINAL:
-						(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) )->vt = VT_I4;
-						(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) )->ulVal = (ULONG) crtCell;
+/*
+					default:
+						(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) )->vt = VT_EMPTY;
 						status = DBSTATUS_S_OK;
 						break;
-					default:
-						status = DBSTATUS_E_BADACCESSOR;
-						result = DBSTATUS_E_BADACCESSOR;
-						break;
+*/
 					}
 				}
 			}

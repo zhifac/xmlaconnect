@@ -29,18 +29,8 @@
 class row_data
 {
 public:
-	VARIANT         m_value;
-	unsigned int    m_cell_ordinal;
+	static ATL::ATLCOLUMNINFO* GetColumnInfo( void* pv, DBORDINAL* pcInfo );
 
+	static const size_t CELL_ORDINAL_POS = 1;
 
-	enum POSITION
-	{
-		POSITION_VALUE = 1,
-		CELL_ORDINAL = 2
-	};
-
-	BEGIN_PROVIDER_COLUMN_MAP( row_data )
-	PROVIDER_COLUMN_ENTRY_TYPE( "VALUE", POSITION_VALUE, DBTYPE_VARIANT, m_value )
-	PROVIDER_COLUMN_ENTRY_TYPE( "CELL_ORDINAL", CELL_ORDINAL, DBTYPE_UI4, m_cell_ordinal )
-	END_PROVIDER_COLUMN_MAP()
 };

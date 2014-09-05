@@ -11,7 +11,7 @@
 caps any
 
 
-# Alias are plain string replacements. The syntax is:
+# Aliases are plain string replacements. The syntax is:
 # alias string_to_replace=replacement_string
 # There is no lexer involved so be aware.
 # Trying to alias to little might break the syntax.

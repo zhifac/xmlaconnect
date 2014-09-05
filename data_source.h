@@ -29,10 +29,19 @@
 #include "comutil.h"
 
 //from msmd.h
+
+extern const OLEDBDECLSPEC GUID DBPROPSET_MDX_EXTENSIONS = {0xa07ccd05L, 0x8148, 0x11d0, {0x87, 0xbb, 0x00, 0xc0, 0x4f, 0xc3, 0x39, 0x42}};
+
+
 #define MDPROP_MDX_SUBQUERIES				0x00000140L
-#define IDS_MDPROP_MDX_SUBQUERIES  MDPROP_MDX_SUBQUERIES
 #define MDX_SUBQUERIES_Type VT_I4
 #define MDX_SUBQUERIES_Flags ( DBPROPFLAGS_DATASOURCEINFO | DBPROPFLAGS_READ )
+
+#define DBPROP_MSMD_BASE					0x1000
+#define DBPROP_MSMD_MDX_CALCMEMB_EXTENSIONS	(DBPROP_MSMD_BASE +  3)
+#define MSMD_MDX_CALCMEMB_EXTENSIONS_Type VT_I4
+#define MSMD_MDX_CALCMEMB_EXTENSIONS_Flags ( DBPROPFLAGS_DBINIT | DBPROPFLAGS_READ )
+#define DBPROPVAL_MDX_CALCMEMB_ADD		0x0001
 
 
 using namespace ATL;
@@ -47,6 +56,7 @@ class ATL_NO_VTABLE data_source :
 	public IInternalConnectionImpl<data_source>,
 	public IServiceProviderImpl<data_source>,
 	public ISpecifyPropertyPagesImpl<data_source>,
+	public IDBInfo,
 	public IGetSelf
 {
 public:
@@ -54,6 +64,8 @@ public:
 
 	HRESULT FinalConstruct()
 	{
+		soap_ssl_init();
+		m_literals_loaded = false;
 		return FInit();
 	}
 	
@@ -262,7 +274,7 @@ public:
 		std::string				location;
 		std::string				catalog;
 		
-		if ( FAILED( hr = GetProperties( 0, NULL, &propCount, &pProperties ) ) ) return hr;
+		if ( FAILED( hr = GetProperties( 0, NULL, &propCount, &pProperties ) ) ) { return hr; }
 
 		read_props( location, catalog, propCount, pProperties );
 
@@ -291,6 +303,281 @@ public:
 		return IDBInitializeImpl<data_source>::Initialize();
 	}
 
+	//IDBInfo
+
+private:
+	struct literal_entry
+	{
+		int LiteralNameEnumValue;
+		const std::string LiteralValue;
+		const std::string LiteralInvalidChars;
+		const std::string LiteralInvalidStartingChars;
+		ULONG LiteralMaxLength;
+
+		literal_entry( const int name, const char* val, const char* inv_chars, const char* inv_start, ULONG len )
+			: LiteralNameEnumValue( name )
+			, LiteralValue( val )
+			, LiteralInvalidChars( inv_chars )
+			, LiteralInvalidStartingChars( inv_start )
+			, LiteralMaxLength( len )
+		{}
+
+		literal_entry( const char* name, const char* val, const char* inv_chars, const char* inv_start, ULONG len )
+			: LiteralValue( val )
+			, LiteralInvalidChars( inv_chars )
+			, LiteralInvalidStartingChars( inv_start )
+			, LiteralMaxLength( len )
+		{
+			LiteralNameEnumValue = name_to_enum(name);
+		}
+
+		int name_to_enum( const char* name)
+		{
+			if ( 0 == strcmp( name, "DBLITERAL_CATALOG_NAME" ) ) { return 2; }
+			if ( 0 == strcmp( name, "DBLITERAL_CATALOG_SEPARATOR" ) ) { return 3; }
+			if ( 0 == strcmp( name, "DBLITERAL_COLUMN_ALIAS" ) ) { return 5; }
+			if ( 0 == strcmp( name, "DBLITERAL_COLUMN_NAME" ) ) { return 6; }
+			if ( 0 == strcmp( name, "DBLITERAL_CORRELATION_NAME" ) ) { return 7; }
+			if ( 0 == strcmp( name, "DBLITERAL_PROCEDURE_NAME" ) ) { return 14; }
+			if ( 0 == strcmp( name, "DBLITERAL_TABLE_NAME" ) ) { return 17; }
+			if ( 0 == strcmp( name, "DBLITERAL_TEXT_COMMAND" ) ) { return 18; }
+			if ( 0 == strcmp( name, "DBLITERAL_USER_NAME" ) ) { return 19; }
+			if ( 0 == strcmp( name, "DBLITERAL_QUOTE_PREFIX" ) ) { return 15; }
+			if ( 0 == strcmp( name, "DBLITERAL_CUBE_NAME" ) ) { return 21; }
+			if ( 0 == strcmp( name, "DBLITERAL_DIMENSION_NAME" ) ) { return 22; }
+			if ( 0 == strcmp( name, "DBLITERAL_HIERARCHY_NAME" ) ) { return 23; }
+			if ( 0 == strcmp( name, "DBLITERAL_LEVEL_NAME" ) ) { return 24; }
+			if ( 0 == strcmp( name, "DBLITERAL_MEMBER_NAME" ) ) { return 25; }
+			if ( 0 == strcmp( name, "DBLITERAL_PROPERTY_NAME" ) ) { return 26; }
+			if ( 0 == strcmp( name, "DBLITERAL_SCHEMA_NAME" ) ) { return 16; }
+			if ( 0 == strcmp( name, "DBLITERAL_SCHEMA_SEPARATOR" ) ) { return 27; }
+			if ( 0 == strcmp( name, "DBLITERAL_QUOTE_SUFFIX" ) ) { return 28; }
+			return 0;
+		}
+	};
+
+	bool m_literals_loaded;
+	std::vector<literal_entry> m_literals;
+
+	HRESULT load_literals()
+	{
+		HRESULT						hr;
+		ULONG						propCount;
+		DBPROPSET*					pProperties;
+		std::string					location;
+		std::string					catalog;
+
+		if ( m_literals_loaded ) { return S_OK; }
+
+		if FAILED( hr = GetProperties( 0, NULL, &propCount, &pProperties ) ) { return hr; }
+
+		read_props( location, catalog, propCount, pProperties );
+
+		connection_handler handler( location, std::string(CT2A( m_user, CP_UTF8 )), std::string(CT2A( m_pass, CP_UTF8 )), catalog );
+		hr = handler.discover( "DISCOVER_LITERALS", 0, nullptr );
+
+		if ( S_OK != hr ) {
+			make_error( FROM_STRING( handler.fault_string(), CP_UTF8 ) );
+			hr = E_FAIL;
+		}
+
+		for ( int i = 0, e = handler.discover_response().cxmla__return__.root.__rows.__size; i < e; ++i ) 
+		{
+			row& crt = handler.discover_response().cxmla__return__.root.__rows.row[i];
+			if ( crt.LiteralName ){
+				m_literals.push_back( literal_entry( crt.LiteralName, crt.LiteralValue ? crt.LiteralValue : "", crt.LiteralInvalidChars ? crt.LiteralInvalidChars : "", crt.LiteralInvalidStartingChars ? crt.LiteralInvalidStartingChars : "", crt.LiteralMaxLength ) );
+			} else {
+				m_literals.push_back( literal_entry( crt.LiteralNameEnumValue, crt.LiteralValue ? crt.LiteralValue : "", crt.LiteralInvalidChars ? crt.LiteralInvalidChars : "", crt.LiteralInvalidStartingChars ? crt.LiteralInvalidStartingChars : "", crt.LiteralMaxLength ) );
+			}
+		}
+
+		m_literals_loaded = true;
+		return S_OK;
+	}
+public:
+
+
+	STDMETHODIMP GetKeywords( LPOLESTR *ppwszKeywords)
+	{
+		HRESULT						hr = S_OK;
+		IMalloc*					allocator;
+		ULONG						propCount;
+		DBPROPSET*					pProperties;
+		std::string					location;
+		std::string					catalog;
+		std::vector<std::string>	keywords;
+		char*						base_keywords = SQL_ODBC_KEYWORDS;
+		
+		if FAILED( hr = GetProperties( 0, NULL, &propCount, &pProperties ) ) { return hr; }
+
+		if FAILED( hr =  CoGetMalloc( 1, &allocator ) ) { return hr; }
+
+		read_props( location, catalog, propCount, pProperties );
+
+		connection_handler handler( location, std::string(CT2A( m_user, CP_UTF8 )), std::string(CT2A( m_pass, CP_UTF8 )), catalog );
+		hr = handler.discover( "DISCOVER_KEYWORDS", 0, nullptr );
+
+		if ( S_OK != hr ) {
+			make_error( FROM_STRING( handler.fault_string(), CP_UTF8 ) );
+			hr = E_FAIL;
+		} else {
+			for ( int i = 0, e = handler.discover_response().cxmla__return__.root.__rows.__size; i < e; ++i ) {
+				const char* crt = handler.discover_response().cxmla__return__.root.__rows.row[i].Keyword;
+				if ( nullptr == crt ) { continue; }
+				const char* match = strstr( base_keywords, crt );
+				if ( nullptr != match && ','==match[strlen(match)] ) { continue; }
+				keywords.push_back( crt );
+			}
+
+			if ( keywords.empty() )
+			{
+				*ppwszKeywords = nullptr;
+			} else {
+				std::string accumulate;
+				std::for_each( keywords.begin(), keywords.end(), [&]( const std::string& val ) { accumulate += ( accumulate.empty() ? "":"," ) + val ; } );
+				rsize_t string_len = accumulate.length() + 1;
+				*ppwszKeywords = (LPOLESTR) allocator->Alloc( string_len * sizeof(OLECHAR) );
+				wcscpy_s( *ppwszKeywords, string_len, CA2W( accumulate.c_str(), CP_UTF8 ) );
+			}
+		}
+
+		allocator->Release();
+		return hr;
+	}
+        
+	STDMETHODIMP GetLiteralInfo( 
+									ULONG cLiterals, 
+									const DBLITERAL rgLiterals[], 
+									ULONG *pcLiteralInfo,
+									DBLITERALINFO **prgLiteralInfo,
+									OLECHAR **ppCharBuffer)
+	{
+		HRESULT						hr = S_OK;
+		IMalloc*					allocator;
+
+		std::vector<std::string>	strings;
+		std::unordered_map< DBLITERAL, std::auto_ptr<DBLITERALINFO > >	prepared_literals;
+		*prgLiteralInfo = nullptr;
+		*ppCharBuffer = nullptr;
+
+		if FAILED( hr = load_literals() ) { return hr; }
+
+		for ( ULONG i = 0; i < cLiterals; ++i )
+		{
+			std::auto_ptr<DBLITERALINFO> crt = std::auto_ptr<DBLITERALINFO>( new DBLITERALINFO ) ;
+			crt->cchMaxLen = 0;
+			crt->fSupported = false;
+			crt->lt = rgLiterals[i];
+			crt->pwszInvalidChars = nullptr;
+			crt->pwszInvalidStartingChars = nullptr;
+			crt->pwszLiteralValue = nullptr;
+
+			prepared_literals[rgLiterals[i]] = crt;
+		}
+
+		if FAILED( hr =  CoGetMalloc( 1, &allocator ) ) { return hr; }
+
+		if ( 0 == cLiterals )
+		{
+
+			for ( std::vector<literal_entry>::const_iterator i = m_literals.begin(), e = m_literals.end(); i != e; ++i )
+			{
+				std::auto_ptr<DBLITERALINFO> crt = std::auto_ptr<DBLITERALINFO>( new DBLITERALINFO ) ;
+
+				crt->cchMaxLen = 0;
+				crt->fSupported = false;
+				crt->lt = i->LiteralNameEnumValue;
+				crt->pwszInvalidChars = nullptr;
+				crt->pwszInvalidStartingChars = nullptr;
+				crt->pwszLiteralValue = nullptr;
+
+				prepared_literals[crt->lt] = crt;
+			}
+		}
+
+		for ( std::vector<literal_entry>::const_iterator i = m_literals.begin(), e = m_literals.end(); i != e; ++i ) {
+			
+			std::unordered_map< DBLITERAL, std::auto_ptr<DBLITERALINFO > >::iterator match = prepared_literals.find( i->LiteralNameEnumValue );
+			if ( prepared_literals.end() == match ) { continue; }
+				
+			match->second->fSupported = true;
+			if ( !i->LiteralValue.empty() )
+			{
+				std::vector<std::string>::const_iterator str_match = std::find_if( strings.begin(), strings.end(), [&]( const std::string& crt ) { return crt == i->LiteralValue; } );
+				if ( strings.end() != str_match )
+				{
+					match->second->pwszLiteralValue = (LPOLESTR)(str_match - strings.begin() + 1);
+				} else
+				{
+					strings.push_back( i->LiteralValue );
+					match->second->pwszLiteralValue = (LPOLESTR)strings.size();
+				}
+			}
+			if ( !i->LiteralInvalidChars.empty() )
+			{
+				std::vector<std::string>::const_iterator str_match = std::find_if( strings.begin(), strings.end(), [&]( const std::string& crt ) { return crt == i->LiteralInvalidChars; } );
+				if ( strings.end() != str_match )
+				{
+					match->second->pwszInvalidChars = (LPOLESTR)(str_match - strings.begin() + 1);
+				} else
+				{
+					strings.push_back( i->LiteralInvalidChars );
+					match->second->pwszInvalidChars = (LPOLESTR)strings.size();
+				}
+			}
+			if ( !i->LiteralInvalidStartingChars.empty() )
+			{
+				std::vector<std::string>::const_iterator str_match = std::find_if( strings.begin(), strings.end(), [&]( const std::string& crt ) { return crt == i->LiteralInvalidStartingChars; } );
+				if ( strings.end() != str_match )
+				{
+					match->second->pwszInvalidStartingChars = (LPOLESTR)(str_match - strings.begin() + 1);
+				} else
+				{
+					strings.push_back( i->LiteralInvalidStartingChars );
+					match->second->pwszInvalidStartingChars = (LPOLESTR)strings.size();
+				}
+			}
+			match->second->cchMaxLen = i->LiteralMaxLength;
+		}
+
+		std::vector<size_t> offsets;
+		size_t crt_offset = 0;
+		for ( std::vector<std::string>::const_iterator i = strings.begin(), e = strings.end(); i != e; ++i )
+		{
+			offsets.push_back( crt_offset );
+			crt_offset += ( i->length() + 1 );
+		}
+		
+		size_t remaining_len = crt_offset;
+		*ppCharBuffer = (OLECHAR*) allocator->Alloc( crt_offset * sizeof(OLECHAR) );
+		OLECHAR* str_buf = *ppCharBuffer;
+		for ( std::vector<std::string>::const_iterator i = strings.begin(), e = strings.end(); i != e; ++i )
+		{
+			wcscpy_s( str_buf, remaining_len, CA2W( i->c_str(), CP_UTF8 ) );
+			str_buf += i->length()+1;
+			remaining_len -= i->length()+1;
+		}
+		str_buf = *ppCharBuffer;
+		*prgLiteralInfo = (DBLITERALINFO*)allocator->Alloc( prepared_literals.size() * sizeof(DBLITERALINFO) );
+		
+		for ( std::unordered_map< DBLITERAL, std::auto_ptr<DBLITERALINFO > >::const_iterator i = prepared_literals.begin(), e = prepared_literals.end(); i != e; ++i )
+		{
+			(*prgLiteralInfo)->cchMaxLen = i->second->cchMaxLen;
+			(*prgLiteralInfo)->fSupported = i->second->fSupported;
+			(*prgLiteralInfo)->lt = i->second->lt;
+			(*prgLiteralInfo)->pwszLiteralValue = nullptr == i->second->pwszLiteralValue ? nullptr : str_buf + offsets[( (size_t)i->second->pwszLiteralValue ) - 1 ];
+			(*prgLiteralInfo)->pwszInvalidChars = nullptr == i->second->pwszInvalidChars ? nullptr : str_buf + offsets[( (size_t)i->second->pwszInvalidChars ) - 1 ];
+			(*prgLiteralInfo)->pwszInvalidStartingChars = nullptr == i->second->pwszInvalidStartingChars ? nullptr : str_buf + offsets[( (size_t)i->second->pwszInvalidStartingChars ) - 1 ];
+			++(*prgLiteralInfo);
+		}
+
+		*prgLiteralInfo -= prepared_literals.size();
+		*pcLiteralInfo = (ULONG)prepared_literals.size();
+
+		allocator->Release();
+		return hr;
+	}
+
 	//IGetSelf
 	STDMETHODIMP GetSelf( void** pSelf )
 	{
@@ -310,6 +597,7 @@ BEGIN_COM_MAP(data_source)
 	COM_INTERFACE_ENTRY(IInternalConnection)
 	COM_INTERFACE_ENTRY(IServiceProvider)
 	COM_INTERFACE_ENTRY(ISpecifyPropertyPages)
+	COM_INTERFACE_ENTRY(IDBInfo)
 	COM_INTERFACE_ENTRY(IGetSelf)
 END_COM_MAP()
 
@@ -329,8 +617,10 @@ BEGIN_PROPSET_MAP(data_source)
 		PROPERTY_INFO_ENTRY( SUPPORTEDTXNISOLEVELS )
 		PROPERTY_INFO_ENTRY( USERNAME )
 
+		PROPERTY_INFO_ENTRY_VALUE( CONNECTIONSTATUS, DBPROPVAL_CS_INITIALIZED )
+
 //OLAP
-		MDPROPERTY_INFO_ENTRY_VALUE( MDX_FORMULAS, MDPROPVAL_MF_SCOPE_SESSION | MDPROPVAL_MF_CREATE_CALCMEMBERS | MDPROPVAL_MF_CREATE_NAMEDSETS | MDPROPVAL_MF_WITH_CALCMEMBERS | MDPROPVAL_MF_WITH_NAMEDSETS )
+		MDPROPERTY_INFO_ENTRY_VALUE( MDX_FORMULAS, MDPROPVAL_MF_SCOPE_SESSION | MDPROPVAL_MF_SCOPE_GLOBAL  | MDPROPVAL_MF_CREATE_CALCMEMBERS | MDPROPVAL_MF_CREATE_NAMEDSETS | MDPROPVAL_MF_WITH_CALCMEMBERS | MDPROPVAL_MF_WITH_NAMEDSETS )
 		MDPROPERTY_INFO_ENTRY_VALUE( FLATTENING_SUPPORT, MDPROPVAL_FS_FULL_SUPPORT )
 		MDPROPERTY_INFO_ENTRY_VALUE( NAMED_LEVELS, MDPROPVAL_NL_NAMEDLEVELS )
 		MDPROPERTY_INFO_ENTRY( MDX_SET_FUNCTIONS )
@@ -349,6 +639,10 @@ BEGIN_PROPSET_MAP(data_source)
 
 	END_PROPERTY_SET(DBPROPSET_DATASOURCEINFO)
 	
+	BEGIN_PROPERTY_SET(DBPROPSET_MDX_EXTENSIONS)
+		PROPERTY_INFO_ENTRY_VALUE( MSMD_MDX_CALCMEMB_EXTENSIONS, DBPROPVAL_MDX_CALCMEMB_ADD )
+	END_PROPERTY_SET(DBPROPSET_MDX_EXTENSIONS)
+
 	BEGIN_PROPERTY_SET(DBPROPSET_DBINIT)
 		PROPERTY_INFO_ENTRY( AUTH_PASSWORD )
 		PROPERTY_INFO_ENTRY( AUTH_USERID )
@@ -368,7 +662,7 @@ BEGIN_PROPSET_MAP(data_source)
 	END_PROPERTY_SET(DBPROPSET_DBINIT)
 
 	BEGIN_PROPERTY_SET( DBPROPSET_DATASOURCE )
-	PROPERTY_INFO_ENTRY( CURRENTCATALOG )
+		PROPERTY_INFO_ENTRY( CURRENTCATALOG )
 	END_PROPERTY_SET( DBPROPSET_DATASOURCE )
 
 	CHAIN_PROPERTY_SET(session)

@@ -8,6 +8,8 @@ public:
 	char*		MEMBER_USCOREUNIQUE_USCORENAME;
 	char*		LEVEL_USCOREUNIQUE_USCORENAME;
 	char*		TREE_USCOREOP;
+	char*		PROPERTY_USCORETYPE;
+	char*		SET_USCORENAME;
 };
 
 class xmlns__Restrictions

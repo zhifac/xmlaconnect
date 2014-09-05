@@ -29,30 +29,6 @@ class base_rowset :
 	public CSchemaRowsetImpl< T, Storage, CreatorClass>,
 	public IErrorRecordsImpl< base_rowset<T, Storage, CreatorClass>>
 {
-private:
-	void make_error( LPOLESTR  a_description  )
-	{
-		ICreateErrorInfo	*cerr_info;
-		IErrorInfo			*err_info;
-		HRESULT				hr;
-
-		if FAILED( hr = CreateErrorInfo(&cerr_info) ) return;
-
-		hr = cerr_info->QueryInterface(IID_IErrorInfo, (LPVOID FAR*) &err_info);
-
-		if ( FAILED( hr ) )
-		{
-			cerr_info->Release();
-			return;
-		}
-
-		cerr_info->SetDescription( a_description );
-		cerr_info->SetGUID(  __uuidof(IDBSchemaRowset) );
-		SetErrorInfo(0, err_info);
-
-		err_info->Release();
-		cerr_info->Release();
-	}
 public:
 
 	//IDBSchemaRowset implementation

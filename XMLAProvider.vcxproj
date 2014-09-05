@@ -84,8 +84,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\gsoap\gsoap\</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WITH_OPENSSL;WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\openssl\include\;..\gsoap\gsoap\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -110,7 +110,8 @@
       <ModuleDefinitionFile>.\XMLAProvider.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libeay32d.lib;ssleay32d.lib;Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\workspace\oracleinterpreter\openssl\lib\Windows\i386\static</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -118,8 +119,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\gsoap\gsoap\</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WITH_OPENSSL;WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\gsoap\gsoap\;..\openssl\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -142,7 +143,8 @@
       <ModuleDefinitionFile>.\XMLAProvider.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libeay32d.lib;ssleay32d.lib;Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\openssl\lib\Windows\x86_64\static\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -284,6 +286,7 @@
     <ClInclude Include="axis_row.h" />
     <ClInclude Include="dimension_row.h" />
     <ClInclude Include="dllmain.h" />
+    <ClInclude Include="function_row.h" />
     <ClInclude Include="hierarchy_row.h" />
     <ClInclude Include="level_row.h" />
     <ClInclude Include="measure_row.h" />
@@ -311,6 +314,7 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </CustomBuild>
     <ClInclude Include="version_info.h" />
     <ClInclude Include="XMLAProvider_i.h" />

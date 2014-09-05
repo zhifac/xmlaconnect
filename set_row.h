@@ -32,24 +32,34 @@ public:
 	wchar_t         m_cube[256];
 	wchar_t         m_set_name[256];
 	long            m_scope;
+	wchar_t         m_expression[256];
 	wchar_t         m_description[256];
+	wchar_t			m_dimension[256];
+	wchar_t         m_set_caption[256];
+	wchar_t         m_display_folder[256];
+	long            m_eval_context;
 
 	set_row( row& a_row )
 	{
 
 		m_schema[0]=0;
-		m_set_name[0]=0;//TODO
+		m_description[0]=0;
+		m_scope = 2;
+		m_eval_context = 1;
 
 		wcscpy_s( m_catalog, 256, FROM_STRING( a_row.CATALOG_USCORENAME, CP_UTF8 ) );
 		wcscpy_s( m_cube, 256, FROM_STRING( a_row.CUBE_USCORENAME, CP_UTF8 ) );
-		wcscpy_s( m_description, 256, FROM_STRING( a_row.DESCRIPTION, CP_UTF8 ) );
+		wcscpy_s( m_set_name, 256, FROM_STRING( a_row.SET_USCORENAME, CP_UTF8 ) );
 
-		m_scope = 0;//TODO
+		wcscpy_s( m_expression, 256, FROM_STRING( /*a_row.EXPRESSION*/"{[Agenti_D].[Agenti_H].[All Agenti].[5.G. L5PPLELE4T54ZE L.5.L.-63EKL]}", CP_UTF8 ));
+		wcscpy_s( m_dimension, 256, FROM_STRING( a_row.DIMENSIONS, CP_UTF8 ));
+		wcscpy_s( m_set_caption, 256, FROM_STRING( a_row.SET_USCORECAPTION, CP_UTF8 ) );
+		wcscpy_s( m_display_folder, 256, FROM_STRING( a_row.SET_USCOREDISPLAY_USCOREFOLDER, CP_UTF8 ) );
 	}
 
 	EMPTY_CONSTRUCTOR(set_row);
 
-	static char* schema_name() { return "UNSUPORTED"; }
+	static char* schema_name() { return "MDSCHEMA_SETS"; }
 
 	BEGIN_PROVIDER_COLUMN_MAP( set_row )
 	PROVIDER_COLUMN_ENTRY_WSTR( "CATALOG_NAME", 1, m_catalog )
@@ -58,5 +68,10 @@ public:
 	PROVIDER_COLUMN_ENTRY_WSTR( "SET_NAME", 4, m_set_name )
 	PROVIDER_COLUMN_ENTRY_TYPE( "SCOPE", 5, VT_I4, m_scope )
 	PROVIDER_COLUMN_ENTRY_WSTR( "DESCRIPTION", 6, m_description )
+	PROVIDER_COLUMN_ENTRY_WSTR( "EXPRESSION", 7, m_expression )
+	PROVIDER_COLUMN_ENTRY_WSTR( "DIMENSIONS", 8, m_dimension )
+	PROVIDER_COLUMN_ENTRY_WSTR( "SET_CAPTION", 9, m_set_caption )
+	PROVIDER_COLUMN_ENTRY_WSTR( "SET_DISPLAY_FOLDER", 10, m_display_folder )
+	PROVIDER_COLUMN_ENTRY_TYPE( "SET_EVALUATION_CONTEXT", 11, VT_I4, m_eval_context )
 	END_PROVIDER_COLUMN_MAP()
 };
