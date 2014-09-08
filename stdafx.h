@@ -96,3 +96,5 @@ inline int get_int( const char* from ) {
 #define EMPTY_CONSTRUCTOR(class_name) class_name##(){}
 
 void make_error( LPOLESTR  aDescription  );
+
+static const int STR_LEN = 256;

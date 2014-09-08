@@ -1,3 +1,13 @@
+Changes 8-September-2014
+
+1. openssl
+
+	Conditional disable of SSL host check. This is achieved by using the registry key: SOAP_SSL_SKIP_HOST_CHECK (DWORD) in HKEY_CURRENT_USER\Software\Arquery\ODBO
+		1. Write any non-zero value to skip host checking
+		2. Write 0 (or don’t declare the key) to enable host checking.
+
+	The installer v 1.0.0.2 defaults to SKIP host checking.
+
 Changes 5-September-2014
 
 1. openssl added

@@ -19,5 +19,6 @@ caps any
 # in the definition DO COUNT.
 
 alias .member_caption=.caption
+alias .properties("caption")=.caption
 
 # Leave an empty line at the end

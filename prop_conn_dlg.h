@@ -27,6 +27,8 @@
 
 #include "comutil.h"
 
+#include "config_data.h"
+
 using namespace ATL;
 
 // prop_conn_dlg
@@ -39,8 +41,6 @@ class ATL_NO_VTABLE prop_conn_dlg :
 	public ATL::CDialogImpl<prop_conn_dlg>
 {
 private:
-	static const int STR_LEN = 256;
-
 	TCHAR				mHost[STR_LEN];
 
 	TCHAR				mUser[STR_LEN];
@@ -76,13 +76,13 @@ public:
 		mInitialCatalog[0]=0;
 		m_bRequiresSave = false;
 
-		HKEY key;
-
-		if ( ERROR_SUCCESS == RegOpenKeyEx( HKEY_CURRENT_USER, TEXT("Software\\Arquery\\ODBO" ), 0,  KEY_READ, &key ) )
+		const std::wstring& reg_location = config_data::location();
+		if ( 0 != reg_location.size() )
 		{
-			DWORD len = STR_LEN;
-			RegGetValue( key, nullptr, TEXT("location"), REG_SZ, nullptr, mHost, &len );
-			CloseHandle( key );
+			wcscpy_s( mHost, STR_LEN, reg_location.c_str() );
+		} else
+		{
+			ZeroMemory( mHost, STR_LEN );
 		}
 
 		return S_OK;

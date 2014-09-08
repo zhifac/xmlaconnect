@@ -25,7 +25,10 @@
 #include "prop_adv_dlg.h"
 #include "pass_prompt.h"
 #include "soapXMLAConnectionProxy.h"
+#include "config_data.h"
 
+bool config_data::m_skip_ssl_host_check = false;
+std::wstring config_data::m_location = TEXT("");
 
 LRESULT prop_conn_dlg::OnEnChangeEdit1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
@@ -66,17 +69,11 @@ LRESULT prop_conn_dlg::OnBnClickedButton1(WORD /*wNotifyCode*/, WORD /*wID*/, HW
 
 	XMLAConnectionProxy proxy( location.c_str() );
 	soap_omode(&proxy, SOAP_XML_DEFAULTNS);
-	//soap_omode(&proxy,SOAP_XML_INDENT);
 	cxmla__DiscoverResponse response;
 
 	xmlns__Restrictions restrictions;
 
 	restrictions.RestrictionList.CATALOG_USCORENAME = (char*)db.c_str();
-
-//	BSessionType begin_session;
-
-//	SOAP_ENV__Header header1;
-//	header1.BeginSession = &begin_session;
 
 	proxy.header = new SOAP_ENV__Header();
 	proxy.header->BeginSession = new BSessionType();
@@ -91,20 +88,18 @@ LRESULT prop_conn_dlg::OnBnClickedButton1(WORD /*wNotifyCode*/, WORD /*wID*/, HW
 	xmlns__Properties props;
 	props.PropertyList.LocaleIdentifier = CP_UTF8;
 
-	soap_ssl_client_context( &proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+	if ( config_data::skip_ssl_host_check() )
+	{
+		soap_ssl_client_context( &proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+	}
+
 	int ret = proxy.Discover( "MDSCHEMA_CUBES", restrictions, props, response );
 
 	if ( S_OK == ret )
 	{
 		MessageBox( TEXT( "Connection Succesfull." ), TEXT( "Info" ), MB_ICONINFORMATION );
 
-		HKEY key;
-		if ( ERROR_SUCCESS == RegOpenKeyEx( HKEY_CURRENT_USER, TEXT("Software\\Arquery\\ODBO" ), 0,  KEY_SET_VALUE, &key ) )
-		{
-			RegSetValueEx( key, TEXT("location"), 0, REG_SZ, (BYTE*)loc, (DWORD)_tcslen( loc ) * 2 );
-			CloseHandle( key );
-		}
-
+		config_data::location( std::wstring( loc ) );
 	}
 	else
 	{
@@ -181,7 +176,10 @@ LRESULT prop_conn_dlg::OnCbnDropdownCombo1(WORD /*wNotifyCode*/, WORD /*wID*/, H
 	xmlns__Properties props;
 	props.PropertyList.LocaleIdentifier = CP_UTF8;
 
-	soap_ssl_client_context( &proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+	if ( config_data::skip_ssl_host_check() )
+	{
+		soap_ssl_client_context( &proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+	}
 
 	proxy.Discover( "DBSCHEMA_CATALOGS", restrictions, props, response );
 

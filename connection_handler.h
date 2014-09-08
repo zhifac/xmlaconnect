@@ -32,7 +32,7 @@
 #ifdef ALLOW_TRANSLATIONS
 #include "query_translator.h"
 #endif
-
+#include "config_data.h"
 
 class connection_handler
 {
@@ -501,7 +501,11 @@ public:
 			fparsehdr = m_proxy.fparsehdr;
 		}
 		m_proxy.fparsehdr = http_post_parse_header;
-		soap_ssl_client_context( &m_proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+		
+		if ( config_data::skip_ssl_host_check() )
+		{
+			soap_ssl_client_context( &m_proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+		}
 
 		soap_2_session()[ &m_proxy ] = m_session;
 		m_execute_colls = nullptr;
@@ -521,7 +525,12 @@ public:
 			fparsehdr = m_proxy.fparsehdr;
 		}
 		m_proxy.fparsehdr = http_post_parse_header;
-		soap_ssl_client_context( &m_proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+		
+		if ( config_data::skip_ssl_host_check() )
+		{
+			soap_ssl_client_context( &m_proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
+		}
+
 		m_execute_colls = nullptr;
 	}
 

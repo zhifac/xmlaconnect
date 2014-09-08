@@ -27,6 +27,7 @@
 #include "session.h"
 #include "pass_prompt.h"
 #include "comutil.h"
+#include "config_data.h"
 
 //from msmd.h
 
@@ -64,6 +65,7 @@ public:
 
 	HRESULT FinalConstruct()
 	{
+		config_data cfg;//loads data
 		soap_ssl_init();
 		m_literals_loaded = false;
 		return FInit();
@@ -352,6 +354,7 @@ private:
 			if ( 0 == strcmp( name, "DBLITERAL_SCHEMA_NAME" ) ) { return 16; }
 			if ( 0 == strcmp( name, "DBLITERAL_SCHEMA_SEPARATOR" ) ) { return 27; }
 			if ( 0 == strcmp( name, "DBLITERAL_QUOTE_SUFFIX" ) ) { return 28; }
+			if ( 0 == strcmp( name, "DBLITERAL_QUOTE" ) ) { return 15; }//MAP TO QUOTE PREFIX FOR MONDRIAN
 			return 0;
 		}
 	};
