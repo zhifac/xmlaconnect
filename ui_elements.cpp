@@ -183,7 +183,7 @@ LRESULT prop_conn_dlg::OnCbnDropdownCombo1(WORD /*wNotifyCode*/, WORD /*wID*/, H
 
 	proxy.Discover( "DBSCHEMA_CATALOGS", restrictions, props, response );
 
-	if ( SOAP_FAULT == proxy.error ) {
+	if ( SOAP_OK != proxy.error ) {
 		MessageBox( CA2W( proxy.fault->faultstring, CP_UTF8) , TEXT( "Error" ), MB_ICONERROR );
 		return 1;
 	}

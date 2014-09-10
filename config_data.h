@@ -21,7 +21,10 @@
 */
 #pragma once
 
+
 #define ARQUERY_KEY_PATH "Software\\Arquery\\ODBO"
+
+
 
 class config_data
 {
@@ -35,10 +38,10 @@ public:
 			TCHAR	location[STR_LEN];
 			DWORD	skip_host_check = 0;
 			ZeroMemory( location, STR_LEN * sizeof( TCHAR ) );
-			RegGetValue( key, nullptr, TEXT("location"), REG_SZ, nullptr, location, &len );
+			RegGetValue( key, nullptr, TEXT("location"), RRF_RT_REG_SZ, nullptr, location, &len );
 			m_location = location;
 			len = sizeof(skip_host_check);
-			DWORD err = RegGetValue( key, nullptr, TEXT("SOAP_SSL_SKIP_HOST_CHECK"), REG_DWORD, nullptr, &skip_host_check, &len );
+			DWORD err = RegGetValue( key, nullptr, TEXT("SOAP_SSL_SKIP_HOST_CHECK"), RRF_RT_REG_DWORD, nullptr, &skip_host_check, &len );
 			m_skip_ssl_host_check = skip_host_check != 0;
 			
 			CloseHandle( key );
