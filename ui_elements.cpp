@@ -99,7 +99,14 @@ LRESULT prop_conn_dlg::OnBnClickedButton1(WORD /*wNotifyCode*/, WORD /*wID*/, HW
 	}
 	else
 	{
-		MessageBox( CA2W( proxy.fault->faultstring, CP_UTF8) , TEXT( "Error" ), MB_ICONERROR );
+		if ( nullptr == proxy.fault || nullptr == proxy.fault->faultstring )
+		{
+			MessageBox( TEXT("No further information.") , TEXT( "Error" ), MB_ICONERROR );
+		}
+		else
+		{
+			MessageBox( CA2W( proxy.fault->faultstring, CP_UTF8) , TEXT( "Error" ), MB_ICONERROR );
+		}
 	}
 	
 	return 0;
