@@ -27,7 +27,7 @@ using namespace ATL;
 class connection_handler;
 
 class ATL_NO_VTABLE command : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComObjectThreadModel>,
 	public IAccessorImpl<command>,
 	public ICommandTextImpl<command>,
 	public ICommandPropertiesImpl<command>,

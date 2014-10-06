@@ -82,6 +82,9 @@
     <ClCompile Include="../gsoap/gsoap/stdsoap2.cpp">
       <Filter>gsoap</Filter>
     </ClCompile>
+    <ClCompile Include="config_data.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">

@@ -38,7 +38,7 @@ class set_rowset;
 using namespace ATL;
 
 class ATL_NO_VTABLE session : 
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComObjectThreadModel>,
 	public IGetDataSourceImpl<session>,
 	public IOpenRowsetImpl<session>,
 	public ISessionPropertiesImpl<session>,
@@ -89,6 +89,7 @@ public:
 		return result;
 	}
 public:
+
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
@@ -171,8 +172,26 @@ BEGIN_SCHEMA_MAP(session)
 END_SCHEMA_MAP()
 
 };
+/*
+ULONG CComPolyObject<session>::AddRef()
+{
+		TCHAR buffer[256];
+		StringCbPrintf(buffer, 256, TEXT("Session::AddRef %lu\n"),m_dwRef);
+		OutputDebugString(buffer);
+		return InternalAddRef();
+}
 
-
+ULONG CComPolyObject<session>::Release()
+{
+		TCHAR buffer[256];
+		StringCbPrintf(buffer, 256, TEXT("Session::Release %lu\n"),m_dwRef);
+		OutputDebugString(buffer);
+		ULONG l = InternalRelease();
+		if (l == 0)
+			delete this;
+		return l;
+}
+*/
 #include "catalog_row.h"
 #include "cube_row.h"
 #include "dimension_row.h"

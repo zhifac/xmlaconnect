@@ -27,9 +27,6 @@
 #include "soapXMLAConnectionProxy.h"
 #include "config_data.h"
 
-bool config_data::m_skip_ssl_host_check = false;
-std::wstring config_data::m_location = TEXT("");
-
 LRESULT prop_conn_dlg::OnEnChangeEdit1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	GetDlgItemText( IDC_EDIT1, mHost, 255 );
@@ -88,16 +85,15 @@ LRESULT prop_conn_dlg::OnBnClickedButton1(WORD /*wNotifyCode*/, WORD /*wID*/, HW
 	xmlns__Properties props;
 	props.PropertyList.LocaleIdentifier = CP_UTF8;
 
-	if ( config_data::skip_ssl_host_check() )
-	{
-		soap_ssl_client_context( &proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
-	}
+	config_data::ssl_init( &proxy );
+
+	config_data::get_proxy( CW2A( loc, CP_UTF8), proxy.proxy_host, proxy.proxy_port );
 
 	int ret = proxy.Discover( "MDSCHEMA_CUBES", restrictions, props, response );
 
 	if ( S_OK == ret )
 	{
-		MessageBox( TEXT( "Connection Succesfull." ), TEXT( "Info" ), MB_ICONINFORMATION );
+		MessageBox( TEXT( "Connection Successful." ), TEXT( "Info" ), MB_ICONINFORMATION );
 
 		config_data::location( std::wstring( loc ) );
 	}
@@ -176,15 +172,20 @@ LRESULT prop_conn_dlg::OnCbnDropdownCombo1(WORD /*wNotifyCode*/, WORD /*wID*/, H
 	xmlns__Properties props;
 	props.PropertyList.LocaleIdentifier = CP_UTF8;
 
-	if ( config_data::skip_ssl_host_check() )
-	{
-		soap_ssl_client_context( &proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
-	}
+	config_data::ssl_init( &proxy );
+	config_data::get_proxy( CW2A( loc, CP_UTF8), proxy.proxy_host, proxy.proxy_port );
 
 	proxy.Discover( "DBSCHEMA_CATALOGS", restrictions, props, response );
 
 	if ( SOAP_OK != proxy.error ) {
-		MessageBox( CA2W( proxy.fault->faultstring, CP_UTF8) , TEXT( "Error" ), MB_ICONERROR );
+		if ( nullptr == proxy.fault || nullptr == proxy.fault->faultstring )
+		{
+			MessageBox( TEXT("No further information.") , TEXT( "Error" ), MB_ICONERROR );
+		}
+		else
+		{
+			MessageBox( CA2W( proxy.fault->faultstring, CP_UTF8) , TEXT( "Error" ), MB_ICONERROR );
+		}
 		return 1;
 	}
 

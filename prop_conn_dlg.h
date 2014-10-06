@@ -34,7 +34,7 @@ using namespace ATL;
 // prop_conn_dlg
 
 class ATL_NO_VTABLE prop_conn_dlg :
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComObjectThreadModel>,
 	public CComCoClass<prop_conn_dlg, &CLSID_XMLAConnectionDlg>,
 	public IPropertyPageImpl<prop_conn_dlg>,
 	public IPersistPropertyBagImpl<prop_conn_dlg>,

@@ -19,6 +19,23 @@ caps any
 # in the definition DO COUNT.
 
 alias .member_caption=.caption
+alias .properties("member_caption")=.caption
+alias .unique_name=.UniqueName
+alias .LEVEL_NUMBER=.Properties("LEVEL_NUMBER")
 alias .properties("caption")=.caption
+
+# Substitutions try to replace a function with an alternate. The syntax is:
+# subs function_definition=expression_definition
+# a function definition goes like this:
+# FunctionName(%param1,%param2,...%paramx)
+# any text can be used after % as long as each param key is different
+# The expression uses the same parameters '
+# The complete expansion replaces the function and its parameters with the expression
+
+# Substitutions are greedy so it is enough fo write foo(%a,%b%,%c)=foo(%a,foo(%b,%c))
+# this will expand a query having foo(a,b,c,d) to foo(a,foo(b,foo(c,d)))
+
+subst CrossJoin(%1,%2,%3)=CrossJoin(%1,CrossJoin(%2,%3))
+subst NonEmpty(%1,%2)=Filter(%1,not isEmpty(%2.Item(0)))
 
 # Leave an empty line at the end

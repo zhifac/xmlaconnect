@@ -28,9 +28,12 @@
 
 #include <vector>
 #include <unordered_map>
+#include <cstring>
 #include "soapXMLAConnectionProxy.h"
 #ifdef ALLOW_TRANSLATIONS
 #include "query_translator.h"
+#else
+#include <cctype>
 #endif
 #include "config_data.h"
 
@@ -502,10 +505,9 @@ public:
 		}
 		m_proxy.fparsehdr = http_post_parse_header;
 		
-		if ( config_data::skip_ssl_host_check() )
-		{
-			soap_ssl_client_context( &m_proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
-		}
+		config_data::ssl_init( &m_proxy );
+		
+		config_data::get_proxy( m_location.c_str(), m_proxy.proxy_host, m_proxy.proxy_port );
 
 		soap_2_session()[ &m_proxy ] = m_session;
 		m_execute_colls = nullptr;
@@ -526,10 +528,9 @@ public:
 		}
 		m_proxy.fparsehdr = http_post_parse_header;
 		
-		if ( config_data::skip_ssl_host_check() )
-		{
-			soap_ssl_client_context( &m_proxy, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
-		}
+		config_data::ssl_init( &m_proxy );
+
+		config_data::get_proxy( m_location.c_str(), m_proxy.proxy_host, m_proxy.proxy_port );
 
 		m_execute_colls = nullptr;
 	}
@@ -560,7 +561,7 @@ public:
 		}	
 		xmlns__Restrictions restrictions;
 
-		load_restrictions( cRestrictions, rgRestrictions, restrictions, strcmp("DISCOVER_LITERALS", endpoint) != 0 );
+		load_restrictions( cRestrictions, rgRestrictions, restrictions, strcmp("DISCOVER_LITERALS", endpoint) != 0 && strcmp("MDSCHEMA_FUNCTIONS", endpoint) != 0 );
 		xmlns__Properties props;
 		props.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());//make Palo happy	
 		props.PropertyList.LocaleIdentifier = CP_UTF8;
@@ -760,7 +761,14 @@ public:
 		case 0://value
 		{
 			_Value& val = m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].Value;
-		
+
+			if ( nullptr == val.__v )
+			{
+					result.bstrVal = NULL;
+					result.vt = VT_BSTR;
+					return result;
+			}
+			
 			if ( 0 == strcmp( val.xsi__type, "xsd:double" ) ) {
 				result.vt = VT_R8;
 				if ( NULL == val.__v ) {
@@ -786,6 +794,14 @@ public:
 					result.vt = VT_BSTR;
 				} else {
 					result.intVal = atoi( val.__v );
+				}
+			} else if ( 0 == strcmp( val.xsi__type, "xsd:boolean" ) ) { 
+				if ( NULL == val.__v ) {
+					result.bstrVal = NULL;
+					result.vt = VT_BSTR;
+				} else {
+					result.vt = VT_BOOL;
+					result.boolVal = (std::strcmp("true", val.__v) == 0);
 				}
 			} else {
 				//handle unknown as string
@@ -860,8 +876,9 @@ public:
 			} else {
 				axisInfo[idx].iAxis = MDAXIS_SLICERS;
 				if ( 0 == m_e_response.cxmla__return__.root.OlapInfo->AxesInfo.AxisInfo[idx].__size ) {
-					//slicer was present but it was empty
-					(*pcAxes)--;
+					//slicer was present but it was empty										
+					axisInfo[idx].cCoordinates = 0;
+					axisInfo[idx].cDimensions = 0;
 					continue;
 				}
 			}
@@ -885,6 +902,8 @@ public:
 			}
 			++idx;
 		}
+
+		DWORD* leak = new DWORD[1];
 
 		*prgAxisInfo	= axisInfo;
 	}

@@ -26,7 +26,7 @@
 #include <fstream>
 #include <algorithm>
 #include <cctype>
-
+#include "config_data.h"
 class query_translator
 {
 private:
@@ -55,7 +55,7 @@ private:
 		server_specifics( session::session_data::server_type server )
 			 : caps(CAPS_ANY) 
 		{
-			std::string file_name(query_translator::get_module_path());
+			std::string file_name(config_data::get_module_path());
 
 			switch ( server )
 			{
@@ -96,6 +96,11 @@ private:
 					start_pos += i->second.length(); // ...
 				}
 			}
+			if ( substitutions.empty() ) { return what; }
+			for ( substitution_vector::const_iterator i = substitutions.begin(), e = substitutions.end(); i != e; ++i )
+			{
+				while ( i->evaluate_once( what ) ){}
+			}
 			return what;
 		}
 
@@ -117,6 +122,13 @@ private:
 					} else if ("ALIAS" == key )
 					{
 						load_alias( val );
+					} else if ( "SUBST" == key )
+					{
+						substitution subst;
+						if ( subst.load( val ) )
+						{
+							substitutions.push_back( subst );
+						}
 					}
 				}
 			}
@@ -126,7 +138,18 @@ private:
 		{
 			std::string::size_type pos = val.find("=");
 			if ( std::string::npos == pos ) { return; }
-			alias_map[ val.substr( 0, pos ) ] = val.substr( pos + 1, val.size() );
+
+			std::string key = val.substr( 0, pos );
+			const std::string subst = val.substr( pos + 1, val.size() ); 
+
+			while ( std::string::npos != (pos = key.find("0x") ) )
+			{
+				const char char_val = (char) strtol( key.substr( pos+2, 2 ).c_str(), nullptr, 16 );
+				key.erase( pos+1, 3 );
+				key[pos] = char_val;
+			}
+
+			alias_map[ key ] = subst;
 		}
 
 		void load_caps( std::string& val )
@@ -140,6 +163,133 @@ private:
 				caps = CAPS_LOWER;
 			}
 		}
+
+	private:
+		struct substitution
+		{
+			std::string function;
+			std::vector<std::string> parameters;
+			std::string expansion;
+			mutable std::vector<std::string> actual_parameters;
+
+			bool advance_to( std::string::size_type& what, const std::string& where, char mark ) const
+			{
+				bool in_lit = false;
+				int parant_cnt = 0;
+				while( true )
+				{
+					if ( where.size() == what ) { return false; }
+					++what;
+					const char crt = where[what];
+					if ( in_lit )
+					{
+						in_lit = ']' != crt;
+						continue;
+					}
+					if ( '['== crt )
+					{
+						in_lit = true;
+						continue;
+					}
+					if ( crt == mark && 0 == parant_cnt ) { return true; }
+
+					if ( '(' == crt ) { ++ parant_cnt; }
+					else if ( ')' == crt ) { -- parant_cnt; }
+					if ( parant_cnt < 0 ) { return false; } //some syntax error here
+					//TODO: add more, like string literals and so on
+				}
+			}
+
+			bool evaluate_once(std::string& what) const
+			{
+				std::string::size_type base_offset = 0;
+
+				while ( true )
+				{
+					size_t param_pos = 0;
+					std::string::size_type start;
+					std::string::size_type offset;
+					std::string::size_type pos = what.find(function, base_offset);
+					if ( std::string::npos == pos ) { return false; }
+
+					base_offset = pos + function.size(); 
+
+					actual_parameters.clear();
+
+					start = pos;
+					pos+= function.size() + 1;
+					offset = pos;
+
+					bool have_match = true;
+
+					while ( param_pos < parameters.size() - 1 )
+					{
+						if ( !advance_to( offset, what, ',' ) )
+						{
+							have_match = false;
+							break;
+						}
+						actual_parameters.push_back( what.substr( pos, offset-pos ) );
+						pos = offset+1;
+						offset = pos;
+						++param_pos;
+					}
+
+					if ( !have_match ) { continue; }
+
+					if ( !advance_to( offset, what, ')' ) )
+					{ 
+						continue; 
+					}
+					actual_parameters.push_back( what.substr( pos, offset-pos ) );
+					pos = offset+1;
+					offset = pos;
+					++param_pos;
+
+					std::string crt_expansion(expansion);
+					for ( size_t i = 0; i < parameters.size(); ++i )
+					{
+						std::string::size_type crt_pos;
+						while ( std::string::npos != ( crt_pos = crt_expansion.find( parameters[i] ) ) )
+						{
+							crt_expansion.replace(crt_pos, parameters[i].size(), actual_parameters[i] );
+						}
+					}
+
+					what.replace( start, pos - start, crt_expansion );
+
+					return true;
+				}
+			}
+
+			bool load( const std::string& val )
+			{
+				parameters.clear();
+				std::string::size_type pos = val.find("=");
+				if ( std::string::npos == pos ) { return false; }
+
+				const std::string left = val.substr( 0, pos );
+				const std::string right = val.substr( pos + 1, val.size() );
+
+				pos = left.find("(");
+				if ( std::string::npos == pos ) { return false; }
+
+				function = left.substr( 0, pos );
+
+				std::string::size_type offset = pos+1;
+				while ( std::string::npos != ( pos = left.find( "%", offset ) ) )
+				{
+					offset = pos + 1;
+					while ( offset < left.size() && ','!=left[offset] && ')'!=left[offset] ){ ++offset; }
+					if ( offset == left.size() ) { return false; }
+					parameters.push_back( left.substr( pos, offset - pos ) );
+				}
+				expansion = right;
+				return true;
+			}
+		};
+		typedef std::vector<substitution> substitution_vector;
+		substitution_vector substitutions;
 	};
 
 	typedef std::unordered_map< session::session_data::server_type, server_specifics > translation_table_type;
@@ -156,19 +306,7 @@ private:
 		return match->second;
 	}
 private:
-	query_translator()
-	{
-		char * path = get_module_path();
-		GetModuleFileNameA( _AtlBaseModule.GetModuleInstance(), path, MAX_PATH );
-		path+= strlen(path);
-		while( *path != '\\' ) { *path-- = 0; }
-	}
-
-	static char* get_module_path()
-	{
-		static char MODULE_PATH[MAX_PATH];
-		return MODULE_PATH;
-	}
+	query_translator(){}
 public:
 	static query_translator& translator()
 	{

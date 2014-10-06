@@ -33,7 +33,7 @@
 using namespace ATL;
 
 class ATL_NO_VTABLE prop_adv_dlg:
-	public CComObjectRootEx<CComSingleThreadModel>,
+	public CComObjectRootEx<CComObjectThreadModel>,
 	public CComCoClass<prop_adv_dlg, &CLSID_XMLAAdvancedDlg>,
 	public IPropertyPageImpl<prop_adv_dlg>,
 	public IPersistPropertyBagImpl<prop_adv_dlg>,
