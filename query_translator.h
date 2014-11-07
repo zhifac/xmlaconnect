@@ -175,7 +175,8 @@ private:
 			bool advance_to( std::string::size_type& what, const std::string& where, char mark ) const
 			{
 				bool in_lit = false;
-				int parant_cnt = 0;
+				int parent_cnt = 0; //used for (
+				int parent1_cnt = 0; //used fot {
 				while( true )
 				{
 					if ( where.size() == what ) { return false; }
@@ -191,11 +192,28 @@ private:
 						in_lit = true;
 						continue;
 					}
-					if ( crt == mark && 0 == parant_cnt ) { return true; }
+					if ( crt == mark && 0 == parent_cnt && 0 == parent1_cnt ) { return true; }
 
-					if ( '(' == crt ) { ++ parant_cnt; }
-					else if ( ')' == crt ) { -- parant_cnt; }
-					if ( parant_cnt < 0 ) { return false; } //some syntax error here
+					switch (crt ) {
+						case '(':
+							++parent_cnt;
+							break;
+						case '{':
+							++parent1_cnt;
+							break;
+						case ')':
+							--parent_cnt;
+							break;
+						case'}':
+							--parent1_cnt;
+							break;
+						default:
+							break;
+					}
+				//	if ( '(' == crt ) { ++ parant_cnt; }
+				//	else if ( ')' == crt ) { -- parant_cnt; }
+					if ( parent_cnt < 0 ) { return false; } //some syntax error here
+					if ( parent1_cnt < 0 ) { return false; } //some syntax error here
 					//TODO: add more, like string literals and so on
 				}
 			}
@@ -217,9 +235,9 @@ private:
 					actual_parameters.clear();
 
 					start = pos;
-					pos+= function.size() + 1;
+					pos+= function.size();
 					offset = pos;
-
+					++pos;
 					bool have_match = true;
 
 					while ( param_pos < parameters.size() - 1 )
