@@ -44,6 +44,9 @@
     <Filter Include="Header Files\compatibility">
       <UniqueIdentifier>{f3517a29-0d54-4d3c-8fef-2913fa702896}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\config">
+      <UniqueIdentifier>{76d9fe54-63f4-4c8c-9b8d-8061d654cc40}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -83,6 +86,9 @@
       <Filter>gsoap</Filter>
     </ClCompile>
     <ClCompile Include="config_data.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pac_interpreter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -187,7 +193,10 @@
       <Filter>Header Files\schema</Filter>
     </ClInclude>
     <ClInclude Include="config_data.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\config</Filter>
+    </ClInclude>
+    <ClInclude Include="pac_interpreter.h">
+      <Filter>Header Files\config</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

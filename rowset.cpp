@@ -79,14 +79,15 @@ STDMETHODIMP rowset::GetCellData(
 			{
 				if ( DBTYPE_VARIANT == bind->pBindings[i].wType )
 				{
-					switch ( bind->pBindings[i].iOrdinal )
+					if ( mConnectionHandler->is_cell_ordinal( bind->pBindings[i].iOrdinal ) )
 					{
-					case row_data::CELL_ORDINAL_POS:
-						(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) )->vt = VT_I4;
-						(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) )->ulVal = (ULONG) crtCell;
-						status = DBSTATUS_S_OK;
-						break;
-					default:
+						VARIANT cell_data;
+						cell_data.vt = VT_UI4;
+						cell_data.ulVal = (ULONG) crtCell;
+						*(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) ) = cell_data;
+					} 
+					else
+					{
 						try
 						{
 							VARIANT cell_data = mConnectionHandler->at( crtCell, bind->pBindings[i].iOrdinal );
@@ -98,13 +99,6 @@ STDMETHODIMP rowset::GetCellData(
 							status = DB_S_ENDOFROWSET;
 							result = DB_S_ENDOFROWSET;
 						}
-						break;
-/*
-					default:
-						(( VARIANT* )((( char* ) pData ) + bind->pBindings[i].obValue + rowSize*(crtCell - ulStartCell) ) )->vt = VT_EMPTY;
-						status = DBSTATUS_S_OK;
-						break;
-*/
 					}
 				}
 			}

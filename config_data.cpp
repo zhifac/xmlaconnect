@@ -32,3 +32,4 @@ int config_data::m_proxy_port;
 std::string config_data::m_proxy_ssl;
 int config_data::m_proxy_port_ssl;
 bool config_data::m_do_init = true;
+CSimpleScriptSite* config_data::m_auto_proxy_handler = nullptr;

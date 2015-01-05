@@ -1,5 +1,6 @@
 extern typedef struct UserPropStruct {
 	const char*		elementName;
+	const char*		__xsi__type;
 	const char*		value;
 } UserDataProp; 
 
@@ -14,6 +15,7 @@ extern typedef struct CellPropStruct {
 	const char*		elementName;
 	const char*		name;
 	const char*		value;
+	const char*		type;
 } CellDataProp;
 
 

@@ -93,9 +93,9 @@ void soap_default_UserDataProp(struct soap* soap,  struct UserPropStruct *a)
 int soap_out_UserDataProp(struct soap *soap, const char *tag, int id, const struct UserPropStruct *a, const char *type)
 {
 	if ( a == NULL ) return SOAP_OK;
-  soap_element_begin_out(soap, a->elementName , id, type); // print XML beginning tag
-  soap_send(soap, a->value); // just print the string (no XML conversion)
-  soap_element_end_out(soap, a->elementName); // print XML ending tag
+	soap_element_begin_out(soap, a->elementName , id, a->__xsi__type); // print XML beginning tag
+	soap_send(soap, a->value); // just print the string (no XML conversion)
+	soap_element_end_out(soap, a->elementName); // print XML ending tag
    return SOAP_OK;
 }
 
@@ -106,6 +106,13 @@ struct UserPropStruct* soap_in_UserDataProp(struct soap *soap, const char *tag, 
 		return NULL;
 	}
 	a->elementName = soap_strdup( soap, soap->tag );
+	if ( NULL != soap->type )
+	{
+		a->__xsi__type = soap_strdup( soap, soap->type );
+	} else
+	{
+		a->__xsi__type = NULL;
+	}
 	soap_in_xsd__string( soap, soap->tag, const_cast<char**>(&(a->value)), "xsd:string" );
 	return a; 
 }
@@ -223,7 +230,9 @@ struct CellPropStruct* soap_in_CellDataProp(struct soap *soap, const char *tag, 
 	}
 	a->elementName = soap_strdup( soap, soap->tag );
 	a->name = nullptr;
+	a->type = nullptr;
 	soap_s2string(soap, soap_attr_value(soap, "name", 0), const_cast<char**>(&(a->name)), 0, -1);
+	soap_s2string(soap, soap_attr_value(soap, "type", 0), const_cast<char**>(&(a->type)), 0, -1);
 	//soap_in_xsd__string( soap, soap_attr_value(soap, "name", 0), const_cast<char**>(&(a->name)), "xsd:string" );
 	soap_in_xsd__string( soap, soap->tag, const_cast<char**>(&(a->value)), "xsd:string" );
 	return a; 

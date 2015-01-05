@@ -24,7 +24,7 @@
 
 #pragma once
 
-#define ALLOW_TRANSLATIONS
+//#define ALLOW_TRANSLATIONS
 
 #include <vector>
 #include <unordered_map>
@@ -40,11 +40,10 @@
 class connection_handler
 {
 public:
+	static const unsigned int WORD_WIDTH = 256;
 	class tabular_data_access
 	{
 	private:
-		static const unsigned int WORD_WIDTH = 256;
-
 		connection_handler& m_handler;
 		int m_col_count;
 		ATLCOLUMNINFO* m_columns;
@@ -52,18 +51,38 @@ public:
 		void make_col_info()
 		{
 			m_columns = new ATLCOLUMNINFO[ m_col_count ];
-
+			size_t offset = 0;
 			for( int i = 0; i < m_col_count; ++i )
 			{
 				m_columns[i].pwszName = _wcsdup( CA2W(tabular_header( i ), CP_UTF8) );
 				m_columns[i].pTypeInfo = (ITypeInfo*)NULL; 
 				m_columns[i].iOrdinal = (ULONG)(i + 1); 
 				m_columns[i].dwFlags = 0; 
-				m_columns[i].ulColumnSize = (ULONG)256; 
-				m_columns[i].wType = (DBTYPE) DBTYPE_WSTR; 
-				m_columns[i].bPrecision = (BYTE)0xFF; 
-				m_columns[i].bScale = (BYTE)0xFF; 
-				m_columns[i].cbOffset = WORD_WIDTH*i * sizeof(wchar_t);
+				m_columns[i].wType = (DBTYPE) tabular_header_type(i); 
+				switch ( m_columns[i].wType )
+				{
+				case DBTYPE_WSTR:
+					m_columns[i].ulColumnSize = (ULONG)WORD_WIDTH; 
+					m_columns[i].bPrecision = (BYTE)0xFF;
+					m_columns[i].bScale = (BYTE)0xFF;
+					m_columns[i].cbOffset = offset;
+					offset += WORD_WIDTH * sizeof(wchar_t);
+					break;
+				case DBTYPE_R8:
+					m_columns[i].ulColumnSize = (ULONG)sizeof(double); 
+					m_columns[i].bPrecision = (BYTE)0xFF; 
+					m_columns[i].bScale = (BYTE)0xFF;
+					m_columns[i].cbOffset = offset;
+					offset += sizeof(double);
+					break;
+				case DBTYPE_I4:
+					m_columns[i].ulColumnSize = (ULONG)sizeof(int); 
+					m_columns[i].bPrecision = (BYTE)0xFF;
+					m_columns[i].bScale = (BYTE)0xFF;
+					m_columns[i].cbOffset = offset;
+					offset += sizeof(int);
+					break;
+				}
 			}
 		}
 
@@ -86,12 +105,29 @@ public:
 			if ( idx >= m_handler.m_e_response.cxmla__return__.root.row[0].__size ){ return ""; }//preffer empty to null
 			return m_handler.m_e_response.cxmla__return__.root.row[0].__array[idx].elementName;
 		}
+		const DBTYPEENUM tabular_header_type( const int idx )
+		{
+			//the first row contains headers and counts. does not have typeinfo on the tags.
+			if ( 2 > m_handler.m_e_response.cxmla__return__.root.__size ) { return DBTYPE_WSTR; }//unknown is string
+			if ( idx >= m_handler.m_e_response.cxmla__return__.root.row[1].__size ){ return DBTYPE_WSTR; }//unknown is string
+			if ( nullptr == (m_handler.m_e_response.cxmla__return__.root.row[1].__array[idx].__xsi__type ) ) { return DBTYPE_WSTR; }//unknown is string
+			const std::string type(m_handler.m_e_response.cxmla__return__.root.row[1].__array[idx].__xsi__type);
+			if ( type == "xsd:double" ) { return DBTYPE_R8; }
+			if ( type == "xsd:int" ) { return DBTYPE_I4; }
+			return DBTYPE_WSTR;
+		}
 	public:
 		tabular_data_access( connection_handler& handler ) 
 			: m_handler( handler )
 			, m_columns( nullptr )
 		{
 			if ( 0 == m_handler.m_e_response.cxmla__return__.root.__size ) 
+			{
+				m_col_count = 0;
+				return;
+			}
+
+			if ( nullptr == m_handler.m_e_response.cxmla__return__.root.row )
 			{
 				m_col_count = 0;
 				return;
@@ -119,8 +155,24 @@ public:
 
 			for( int i = 0; i < m_col_count; ++i )
 			{
-				wcscpy_s( data, WORD_WIDTH, CA2W(m_handler.m_e_response.cxmla__return__.root.row[idx].__array[i].value, CP_UTF8) );
-				data += WORD_WIDTH;
+				switch ( m_columns[i].wType )
+				{
+				case DBTYPE_WSTR:
+					wcscpy_s( ( wchar_t*) ((char*)data + m_columns[i].cbOffset), WORD_WIDTH, CA2W(m_handler.m_e_response.cxmla__return__.root.row[idx].__array[i].value, CP_UTF8) );
+					break;
+				case DBTYPE_R8:
+					{
+						double val = atof( m_handler.m_e_response.cxmla__return__.root.row[idx].__array[i].value );
+						CopyMemory( (char*)data + m_columns[i].cbOffset, &val, sizeof( val ) );
+					}
+					break;
+				case DBTYPE_I4:
+					{
+						int val = atoi( m_handler.m_e_response.cxmla__return__.root.row[idx].__array[i].value );
+						CopyMemory( (char*)data + m_columns[i].cbOffset, &val, sizeof( val ) );
+					}
+					break;
+				}
 			}
 
 			//return m_handler.m_e_response.cxmla__return__.root.row[0].__array[idx].elementName;
@@ -151,6 +203,7 @@ private:
 	tabular_data_access* m_tab_data_access;
 
 	ATL::ATLCOLUMNINFO* m_execute_colls;
+	size_t m_cell_ordinal_pos;
 	size_t m_execute_col_count;
 	std::vector< std::pair< std::string, int > > m_indirection;//0 will be value, all user props will substract 1
 private:
@@ -421,30 +474,27 @@ private:
 		m_indirection.clear();
 	}
 
+	DBTYPEENUM dbtype_from_xsd( const char* xsd )
+	{
+		if ( nullptr == xsd ) { return DBTYPE_WSTR; }
+		if ( 0 == strcmp( "xsd:string", xsd ) ) { return DBTYPE_WSTR; }
+		if ( 0 == strcmp( "xsd:int", xsd ) ) { return DBTYPE_I4; }
+		if ( 0 == strcmp( "xsd:unsignedInt", xsd ) ) { return DBTYPE_UI4; }
+		if ( 0 == strcmp( "xsd:short", xsd ) ) { return DBTYPE_I2; }
+		if ( 0 == strcmp( "xsd:unsignedShort", xsd ) ) { return DBTYPE_UI2; }
+		return DBTYPE_WSTR;
+	}
+
 	void form_column_headers()
 	{
 		safe_delete_column_headers();
 
 		if ( nullptr == m_e_response.cxmla__return__.root.OlapInfo ) { return; }
 
-		m_execute_colls = new ATLCOLUMNINFO[ m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__size + 2 ];	
+		m_execute_colls = new ATLCOLUMNINFO[ m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__size + 1 ];	
 		DBLENGTH pos = 0;
 		size_t crt = 0;
-
-
-		m_execute_colls[crt].pwszName = _wcsdup( L"CELL_ORDINAL" );
-		m_execute_colls[crt].pTypeInfo = (ITypeInfo*)nullptr;
-		m_execute_colls[crt].iOrdinal = crt + 1;
-		m_execute_colls[crt].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
-		m_execute_colls[crt].ulColumnSize = sizeof(unsigned long);
-		m_execute_colls[crt].wType = DBTYPE_UI4;
-		m_execute_colls[crt].bPrecision = 0;
-		m_execute_colls[crt].bScale = 0;
-		m_execute_colls[crt].cbOffset = pos;
-		memset( &( m_execute_colls[crt].columnid ), 0, sizeof( DBID ));
-	
-		pos += m_execute_colls[crt].ulColumnSize;
-		++crt;
+		m_cell_ordinal_pos = -1;
 
 		if ( nullptr != m_e_response.cxmla__return__.root.OlapInfo->CellInfo.Value )
 		{			
@@ -467,17 +517,54 @@ private:
 		for ( int i = 0; i < m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__size; ++i )
 		{
 			m_execute_colls[crt].pwszName = _wcsdup( FROM_STRING( m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__array[i].name, CP_UTF8 ) );
+			if ( 0 == wcscmp( m_execute_colls[crt].pwszName, L"CELL_ORDINAL" ) )
+			{
+				m_cell_ordinal_pos = crt;
+			}
 			m_execute_colls[crt].pTypeInfo = (ITypeInfo*)nullptr;
 			m_execute_colls[crt].iOrdinal = crt + 1;
 			m_execute_colls[crt].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
-			m_execute_colls[crt].ulColumnSize = sizeof(VARIANT);
-			m_execute_colls[crt].wType = DBTYPE_VARIANT;
-			m_execute_colls[crt].bPrecision = 0;
-			m_execute_colls[crt].bScale = 0;
-			m_execute_colls[crt].cbOffset = pos;
+			m_execute_colls[crt].wType = dbtype_from_xsd( m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__array[i].type );
+			switch ( m_execute_colls[crt].wType )
+			{
+			case DBTYPE_WSTR:
+				m_execute_colls[crt].dwFlags = DBCOLUMNFLAGS_MAYBENULL;
+				m_execute_colls[crt].ulColumnSize = (ULONG)WORD_WIDTH; 
+				m_execute_colls[crt].bPrecision = 0;
+				m_execute_colls[crt].bScale = 0;
+				m_execute_colls[crt].cbOffset = pos;
+				pos += WORD_WIDTH * sizeof(wchar_t);
+				break;
+			case DBTYPE_UI4:
+				m_execute_colls[crt].ulColumnSize = (ULONG)sizeof(unsigned int); 
+				m_execute_colls[crt].bPrecision = (BYTE)0xFF; 
+				m_execute_colls[crt].bScale = (BYTE)0xFF;
+				m_execute_colls[crt].cbOffset = pos;
+				pos += sizeof(unsigned int);
+				break;
+			case DBTYPE_I4:
+				m_execute_colls[crt].ulColumnSize = (ULONG)sizeof(int); 
+				m_execute_colls[crt].bPrecision = (BYTE)0xFF;
+				m_execute_colls[crt].bScale = (BYTE)0xFF;
+				m_execute_colls[crt].cbOffset = pos;
+				pos += sizeof(int);
+				break;
+			case DBTYPE_UI2:
+				m_execute_colls[crt].ulColumnSize = (ULONG)sizeof(unsigned short); 
+				m_execute_colls[crt].bPrecision = (BYTE)0xFF; 
+				m_execute_colls[crt].bScale = (BYTE)0xFF;
+				m_execute_colls[crt].cbOffset = pos;
+				pos += sizeof(unsigned short);
+				break;
+			case DBTYPE_I2:
+				m_execute_colls[crt].ulColumnSize = (ULONG)sizeof(short); 
+				m_execute_colls[crt].bPrecision = (BYTE)0xFF;
+				m_execute_colls[crt].bScale = (BYTE)0xFF;
+				m_execute_colls[crt].cbOffset = pos;
+				pos += sizeof(short);
+				break;
+			}
 			memset( &( m_execute_colls[crt].columnid ), 0, sizeof( DBID ));
-	
-			pos += m_execute_colls[crt].ulColumnSize;
 			++crt;
 			m_indirection.push_back( std::make_pair( std::string( m_e_response.cxmla__return__.root.OlapInfo->CellInfo.__cellProps.__array[i].elementName ), -1 )  );
 		}
@@ -717,6 +804,11 @@ public:
 		return m_execute_colls;
 	}
 
+	bool  is_cell_ordinal( size_t indirection )
+	{
+		return m_cell_ordinal_pos == indirection-1;
+	}
+
 	VARIANT at( DBORDINAL index, size_t indirection )
 	{
 		VARIANT result;
@@ -742,20 +834,20 @@ public:
 
 		//will only test once for user defined props
 
-		if ( -1 == m_indirection[indirection-2].second )
+		if ( -1 == m_indirection[indirection-1].second )
 		{
-			m_indirection[indirection-2].second = -2;
+			m_indirection[indirection-1].second = -2;
 			for ( int i = 0; i < m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__size; ++i )
 			{
-				if ( 0 == strcmp( m_indirection[indirection-2].first.c_str(), m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__array[i].elementName ) )
+				if ( 0 == strcmp( m_indirection[indirection-1].first.c_str(), m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__array[i].elementName ) )
 				{
-					m_indirection[indirection-2].second = i+1;
+					m_indirection[indirection-1].second = i+1;
 					break;
 				}
 			}
 		}
 
-		switch ( m_indirection[indirection-2].second )
+		switch ( m_indirection[indirection-1].second )
 		{
 
 		case 0://value
@@ -813,18 +905,27 @@ public:
 				}
 			}
 		}
+
 		break;
 
 		default:
 		{			
 			char* data = nullptr;
-			if ( m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__size >= m_indirection[indirection-2].second )
+			if ( m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__size >= m_indirection[indirection-1].second )
 			{
-				data = const_cast<char*>( m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__array[m_indirection[indirection-2].second-1].value );
+				data = const_cast<char*>( m_e_response.cxmla__return__.root.CellData->Cell[m_cell_data[index]].__cellProps.__array[m_indirection[indirection-1].second-1].value );
 			}
 			if ( data ) {
-				result.vt = VT_BSTR;
-				result.bstrVal = SysAllocString( CA2W( data, CP_UTF8 ) );
+				DBTYPE data_type = m_execute_colls[indirection-1].wType;
+				switch ( data_type )
+				{
+				case DBTYPE_WSTR:
+					{
+						result.vt = VT_BSTR;
+						result.bstrVal = SysAllocString( CA2W( data, CP_UTF8 ) );
+					}
+					break;
+				}
 			} else {
 				result.vt = VT_EMPTY;
 			}	

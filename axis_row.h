@@ -298,8 +298,17 @@ public:
 						}
 						break;
 					default://custom props
-						wcscpy_s(  ( wchar_t* )( m_data_exchange + offset ), m_col_info[i].ulColumnSize / 2, CA2W( crtTuple.Member[ memberIdx ].__userProp.__array[ m_indirection.at( idx ) - 3].value, CP_UTF8 ) );
-						offset += m_col_info[i].ulColumnSize;
+						{
+							size_t crt_idx = m_indirection.at( idx ) - 3;
+							if ( crtTuple.Member[ memberIdx ].__userProp.__size <= crt_idx )
+							{
+								*( ( wchar_t* )( m_data_exchange + offset ) ) = 0;
+							} else
+							{
+								wcscpy_s(  ( wchar_t* )( m_data_exchange + offset ), m_col_info[i].ulColumnSize / 2, CA2W( crtTuple.Member[ memberIdx ].__userProp.__array[crt_idx].value, CP_UTF8 ) );
+							}
+							offset += m_col_info[i].ulColumnSize;
+						}
 						break;
 					};
 				}

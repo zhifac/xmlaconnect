@@ -1,3 +1,25 @@
+Changes 1-Jan-2015
+
+1. Proxy autoconfiguration script support. Implemented with ATLHTTP. You need to download it from here: http://atlserver.codeplex.com/ . The solution expects atlhttp to be on the same level with gsoap. The current build layout is shown belw:
+
+\
+|
+----XMLA Code
+|
+----openssl
+|	--lib
+|		--i386
+|			--static
+|		--x86_64
+|			--static
+----gsoap
+|
+----atl_server
+
+2. Propagate format strings to Excel.
+3. Handles local trust for SSL.
+4. Small bugs.
+
 Changes 8-September-2014
 
 1. openssl
