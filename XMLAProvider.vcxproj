@@ -321,7 +321,6 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </CustomBuild>
     <ClInclude Include="version_info.h" />
     <ClInclude Include="XMLAProvider_i.h" />
