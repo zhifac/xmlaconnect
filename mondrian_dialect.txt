@@ -38,4 +38,7 @@ alias .properties("caption")=.caption
 subst CrossJoin(%1,%2,%3)=CrossJoin(%1,CrossJoin(%2,%3))
 subst NonEmpty(%1,%2)=Filter(%1,not isEmpty(%2.Item(0)))
 
+#Regex substitutions
+regex \[+[_[:alnum:]\.\'\*\+\?[:space:]\\$]+\]+\.+currentmember+\.+LEVEL_NUMBER==CAST( $& AS INTEGER )
+
 # Leave an empty line at the end

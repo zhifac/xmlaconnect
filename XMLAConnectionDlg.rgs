@@ -16,7 +16,7 @@ HKCR
 			VersionIndependentProgID = s 'XMLAProviderLib.XMLAConnectionDlg'
 			InprocServer32 = s '%MODULE%'
 			{
-				val ThreadingModel = s 'Apartment'
+				val ThreadingModel = s 'Both'
 			}
 			TypeLib = s '{27958A5E-8C87-4CFA-B293-7940DE842E24}'
 			Version = s '1.0'

@@ -53,6 +53,7 @@ public:
 	xsd__string		PropertyDescription;
 	xsd__string		PropertyType;
 	xsd__string		PropertyAccessType;
+	xsd__string		PROPERTY_USCOREATTRIBUTE_USCOREHIERARCHY_USCORENAME;
 	xsd__string		IsRequired;
 	xsd__string		Value;
 	xsd__string		DataSourceName;
@@ -78,6 +79,7 @@ public:
 	xsd__string		EXPRESSION;
 	xsd__string		SET_USCORECAPTION;
 	xsd__string		SET_USCOREDISPLAY_USCOREFOLDER;
+	xsd__string		STRUCTURE;
 	xsd__string		DIMENSIONS;
 	}*  row;	
 };

@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA data stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -66,6 +66,8 @@ public:
 	HRESULT FinalConstruct()
 	{
 		m_literals_loaded = false;
+		m_pass[0] = 0;
+		m_user[0] = 0;
 		config_data cfg;
 		return FInit();
 	}
@@ -202,26 +204,29 @@ CLEANUP:
 		login_prompt.m_pass = m_pass;
 		if ( IDOK == login_prompt.DoModal( m_parent_window_handle ) ) {
 			_tcscpy_s( m_user, 256, login_prompt.m_user );
-			_tcscpy_s( m_pass, 256, login_prompt.m_pass );
-
-			DBPROPSET   propset;
-			DBPROP		props[2];
-			_variant_t usr(login_prompt.m_user);
-			_variant_t auth(login_prompt.m_pass);
-
-			ZeroMemory( props, 2 * sizeof( DBPROP ) );
-			propset.guidPropertySet = DBPROPSET_DBINIT;
-			propset.cProperties = 2;
-			propset.rgProperties = props;
-			
-			props[0].dwPropertyID = DBPROP_AUTH_USERID;		
-			props[0].vValue = usr;
-			props[1].dwPropertyID = DBPROP_AUTH_PASSWORD;
-			props[1].vValue = auth;
-			return SetProperties( 1, &propset );
+			_tcscpy_s( m_pass, 256, login_prompt.m_pass );	
 		}
 
 		return S_OK;
+	}
+
+	HRESULT WriteCrtUserPass()
+	{
+		DBPROPSET   propset;
+		DBPROP		props[2];
+		_variant_t usr(m_user);
+		_variant_t auth(m_pass);
+
+		ZeroMemory( props, 2 * sizeof( DBPROP ) );
+		propset.guidPropertySet = DBPROPSET_DBINIT;
+		propset.cProperties = 2;
+		propset.rgProperties = props;
+			
+		props[0].dwPropertyID = DBPROP_AUTH_USERID;		
+		props[0].vValue = usr;
+		props[1].dwPropertyID = DBPROP_AUTH_PASSWORD;
+		props[1].vValue = auth;
+		return SetProperties( 1, &propset );
 	}
 
 	void read_props( std::string& location, std::string& catalog, ULONG propCount, DBPROPSET* pProperties )
@@ -293,10 +298,20 @@ public:
 		
 		
 		for (  int i = 0; i < 3; ++i ){
+			if ( 0 == m_pass[0] ) 
+			{
+				config_data::cred_iterator match = config_data::m_credentials.find( location+catalog );
+				if ( config_data::m_credentials.end() != match )  {
+					_tcscpy_s( m_user, 256, CA2T(match->second.first.c_str(), CP_UTF8) );
+					_tcscpy_s( m_pass, 256, CA2T(match->second.second.c_str(), CP_UTF8) );					
+				}
+			}
 			connection_handler handler( location, std::string(CT2A( m_user, CP_UTF8 )), std::string(CT2A( m_pass, CP_UTF8 )), catalog );
 			if ( S_OK != handler.execute("") && !handler.valid_credentials() ) {
 				PromptInitialize();
 			} else {
+				WriteCrtUserPass();
+				config_data::m_credentials[location+catalog] = config_data::key_val_type(CT2A( m_user, CP_UTF8 ),CT2A( m_pass, CP_UTF8 ));
 				break;
 			}
 		}

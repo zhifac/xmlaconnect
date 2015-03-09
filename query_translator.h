@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA data stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -26,6 +26,8 @@
 #include <fstream>
 #include <algorithm>
 #include <cctype>
+#include <regex>
+#include <sstream>
 #include "config_data.h"
 class query_translator
 {
@@ -42,6 +44,8 @@ private:
 
 		caps_type		caps;
 		alias_map_type	alias_map;
+		alias_map_type	dim_props_map;
+		alias_map_type	regex_map;
 
 		server_specifics() : caps(CAPS_ANY) {}
 
@@ -50,6 +54,8 @@ private:
 			if ( this == &other ) { return; }
 			caps = other.caps;
 			alias_map = other.alias_map;
+			dim_props_map = other.dim_props_map;
+			regex_map = other.regex_map;
 		}
 
 		server_specifics( session::session_data::server_type server )
@@ -87,7 +93,17 @@ private:
 			{
 				std::transform( what.begin(), what.end(), what.begin(), std::tolower );
 			}
-			if ( alias_map.empty() ) { return what; }
+
+			if ( !regex_map.empty() ) {
+				for ( alias_map_type::const_iterator i = regex_map.begin(), e = regex_map.end(); i != e; ++i ) {
+					std::stringstream buff;
+					buff<<std::regex_replace (what,std::regex(i->first),i->second);
+					what = buff.str();
+				}
+				
+			}
+
+			if ( alias_map.empty() && dim_props_map.empty()) { return what; }
 			for ( alias_map_type::const_iterator i = alias_map.begin(), e = alias_map.end(); i != e; ++i )
 			{
 				size_t start_pos = 0;
@@ -96,6 +112,16 @@ private:
 					start_pos += i->second.length(); // ...
 				}
 			}
+			//just for properties
+			for ( alias_map_type::const_iterator i = dim_props_map.begin(), e = dim_props_map.end(); i != e; ++i )
+			{
+				size_t start_pos = 0;
+				while((start_pos = what.find(i->first, start_pos)) != std::string::npos) {
+					what.replace(start_pos, i->first.length(), i->second);
+					start_pos += i->second.length(); // ...
+				}
+			}
+
 			if ( substitutions.empty() ) { return what; }
 			for ( substitution_vector::const_iterator i = substitutions.begin(), e = substitutions.end(); i != e; ++i )
 			{
@@ -129,9 +155,23 @@ private:
 						{
 							substitutions.push_back( subst );
 						}
+					} else if ("REGEX" == key ) 
+					{
+						load_regex( val ); 
 					}
 				}
 			}
+		}
+
+		void load_regex( const std::string& val )
+		{
+			std::string::size_type pos = val.find("==");
+			if ( std::string::npos == pos ) { return; }
+
+			std::string key = val.substr( 0, pos );
+			const std::string subst = val.substr( pos + 2, val.size() ); 
+
+			regex_map[ key ] = subst;
 		}
 
 		void load_alias( const std::string& val )
@@ -152,6 +192,7 @@ private:
 			alias_map[ key ] = subst;
 		}
 
+
 		void load_caps( std::string& val )
 		{
 			std::transform( val.begin(), val.end(), val.begin(), std::toupper );
@@ -161,6 +202,18 @@ private:
 			} else if ( "LOWER" == val) 
 			{
 				caps = CAPS_LOWER;
+			}
+		}
+	public:
+		void load_prop_alias( std::string& key, std::string& subst ) 
+		{
+			dim_props_map[ key ] = subst;
+		}
+
+		void remove_prop_alias( std::vector<std::string>& aliases )
+		{
+			for(std::vector<std::string>::iterator i = aliases.begin(), e = aliases.end(); i != e; ++i) {
+				dim_props_map.erase( *i );
 			}
 		}
 
@@ -210,8 +263,7 @@ private:
 						default:
 							break;
 					}
-				//	if ( '(' == crt ) { ++ parant_cnt; }
-				//	else if ( ')' == crt ) { -- parant_cnt; }
+				
 					if ( parent_cnt < 0 ) { return false; } //some syntax error here
 					if ( parent1_cnt < 0 ) { return false; } //some syntax error here
 					//TODO: add more, like string literals and so on
@@ -323,8 +375,16 @@ private:
 		
 		return match->second;
 	}
+
+	void release( session::session_data::server_type server )
+	{
+		m_translation_table.erase( server );
+	}
 private:
-	query_translator(){}
+	query_translator() {}
+
+	std::string		m_cube_key;
+	
 public:
 	static query_translator& translator()
 	{
@@ -336,5 +396,25 @@ public:
 	{
 		const server_specifics& translator = get( server );
 		return translator.translate( src );
+	}
+	
+	void load_alias( std::string& key, std::string& subst, session::session_data::server_type server ) 
+	{
+		const server_specifics& translator = get( server );
+		(const_cast<server_specifics&>(translator)).load_prop_alias( key, subst);
+	}
+
+	void clear_alias( session::session_data::server_type server )
+	{
+		const server_specifics& translator = get( server );
+		//(const_cast<server_specifics&>(translator))
+	}
+
+	void setKey( std::string& key ) {
+		m_cube_key = key;
+	}
+
+	bool same_cube( std::string& key ) {
+		return 0 == key.compare( m_cube_key);
 	}
 };

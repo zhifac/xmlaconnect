@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA data stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -113,6 +113,7 @@ struct UserPropStruct* soap_in_UserDataProp(struct soap *soap, const char *tag, 
 	{
 		a->__xsi__type = NULL;
 	}
+	soap_s2string(soap, soap_attr_value(soap, "name", 0), const_cast<char**>(&((UserPropStruct*)a)->name), 0, -1);
 	soap_in_xsd__string( soap, soap->tag, const_cast<char**>(&(a->value)), "xsd:string" );
 	return a; 
 }

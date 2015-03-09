@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA data stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -40,6 +40,7 @@
 #include <atldb.h>
 
 #include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <sstream>
 
@@ -98,3 +99,14 @@ inline int get_int( const char* from ) {
 void make_error( LPOLESTR  aDescription  );
 
 static const int STR_LEN = 256;
+
+#define PROVIDER_COLUMN_ENTRY_VAR_WSTR(name, ordinal, size, member) \
+	PROVIDER_COLUMN_ENTRY_EX(name, NULL, ordinal, DBCOLUMNFLAGS_MAYBENULL, size, DBTYPE_WSTR + DBTYPE_BYREF, 0, 0, GUID_NULL, member )
+
+inline void wcscpy_s( wchar_t* dst, size_t dst_len, wchar_t* src )
+{
+	size_t len_to_copy = wcslen( src );
+	if ( len_to_copy >= dst_len ) { len_to_copy = dst_len - 1; }
+	memcpy( dst, src, len_to_copy*sizeof(wchar_t));
+	*(dst+len_to_copy)=0;
+}

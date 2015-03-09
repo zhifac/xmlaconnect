@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA data stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -22,8 +22,11 @@
 #pragma once
 
 #include <Wininet.h>
+#include <winsock2.h>
+#include <iphlpapi.h>
 #include <vector>
 #include <algorithm>
+#include <unordered_map>
 
 #include "soapXMLAConnectionProxy.h"
 
@@ -37,6 +40,7 @@ class config_data
 public:
 	config_data() 
 	{
+		m_proxy_bypass_local = false;		
 		init_module_path();
 		if ( !m_do_init ) { return; }
 		m_do_init = false;
@@ -49,6 +53,12 @@ public:
 	}
 public:
 	static const bool skip_ssl_host_check() { return m_skip_ssl_host_check; }
+
+	typedef std::pair<std::string,std::string>					key_val_type;
+	typedef std::unordered_map<std::string,key_val_type>		cred_store_type;
+	typedef cred_store_type::iterator							cred_iterator;
+	static 	cred_store_type										m_credentials; //key=location+catalog
+
 	
 	static const std::wstring& location() { return m_location; }
 	static void location( const std::wstring& loc )
@@ -62,12 +72,23 @@ public:
 	}
 	void static get_proxy( const char* uri, const char*& proxy, int& port )
 	{
-		if ( !m_use_proxy ) { return; }
+		if ( !m_use_proxy ) { proxy=nullptr;return; }
+
+		if ( should_bypass_proxy( uri ) ) 
+		{ 
+			proxy=nullptr;
+			return; 
+		}
+
 		if ( nullptr != m_auto_proxy_handler )
 		{
 			const wchar_t* resolved_proxy = m_auto_proxy_handler->get_proxy_for( ATL::CA2W( uri ) );
 			
-			if ( nullptr == resolved_proxy ) { proxy=nullptr;return; }
+			if ( nullptr == resolved_proxy ) 
+			{
+				proxy=nullptr;
+				return; 
+			}
 
 			static std::string last_proxy_str;
 			
@@ -80,8 +101,6 @@ public:
 
 		std::string local_uri( uri );
 		std::transform(local_uri.begin(), local_uri.end(),local_uri.begin(), ::toupper);
-
-		//TODO: bypass
 
 		if ( 0 == local_uri.substr( 0, 5 ).compare("HTTPS") && 0 != m_proxy_port_ssl )
 		{
@@ -110,9 +129,9 @@ public:
 			soap_ssl_client_context( connection, SOAP_SSL_SKIP_HOST_CHECK, nullptr, nullptr, nullptr, nullptr, nullptr );
 		} else 
 		{
-			//std::string cacerts_file( get_module_path() );
-			//cacerts_file.append("cacerts.pem");
-			soap_ssl_client_context( connection, SOAP_SSL_DEFAULT, nullptr, nullptr, /*cacerts_file.c_str()*/nullptr, nullptr, nullptr );
+			std::string cacerts_file( get_module_path() );
+			cacerts_file.append("cacerts.pem");
+			soap_ssl_client_context( connection, SOAP_SSL_DEFAULT, nullptr, nullptr, cacerts_file.c_str(), nullptr, nullptr );
 			import_certificates( connection->ctx, TEXT("My") );
 			import_certificates( connection->ctx, TEXT("CA") );
 			import_certificates( connection->ctx, TEXT("ROOT") );
@@ -220,21 +239,19 @@ private:
 
 		if ( PROXY_TYPE_PROXY == ( Option[0].Value.dwValue & PROXY_TYPE_PROXY ) )
 		{
-OutputDebugString( L"Using proxy: ");
-			if ( nullptr != Option[1].Value.pszValue ) { m_bypass = std::string( ATL::CW2A(Option[1].Value.pszValue, CP_UTF8) ); }
+			if ( nullptr != Option[1].Value.pszValue ) 
+			{
+				load_bypass_list( std::string( ATL::CW2A(Option[1].Value.pszValue, CP_UTF8) ) );
+			}
 
 			if ( nullptr == Option[2].Value.pszValue ){ goto CLEANUP; }
-OutputDebugString( Option[2].Value.pszValue);
 			std::string ascii_proxy( ATL::CW2A(Option[2].Value.pszValue, CP_UTF8) );
 			load_proxies( ascii_proxy );
 
 		} else if ( PROXY_TYPE_AUTO_PROXY_URL == ( Option[0].Value.dwValue & PROXY_TYPE_AUTO_PROXY_URL ) )
 		{
-OutputDebugString( L"Using proxy autoconfig script.\n");
 			if ( nullptr != Option[3].Value.pszValue ) 
 			{
-OutputDebugString( L"Script location: ");
-OutputDebugString( Option[3].Value.pszValue);
 				m_auto_proxy_handler = new CSimpleScriptSite( Option[3].Value.pszValue ); 
 				m_use_proxy = true;
 			}
@@ -245,6 +262,141 @@ OutputDebugString( Option[3].Value.pszValue);
 CLEANUP:
 		if ( nullptr != Option[1].Value.pszValue ) { GlobalFree(Option[1].Value.pszValue); }
 		if ( nullptr != Option[2].Value.pszValue ) { GlobalFree(Option[2].Value.pszValue); }
+	}
+
+	void load_bypass_list( const std::string& bypass_string )
+	{
+		m_bypass.clear();
+		break_list( bypass_string, m_bypass );
+
+		std::vector<std::string>::const_iterator local = std::find( m_bypass.begin(), m_bypass.end(), "<local>" );
+		if ( m_bypass.end() != local )
+		{
+			m_bypass.erase( local );
+			m_proxy_bypass_local = true;
+
+			load_local_bypass_data();
+		}
+
+		std::vector<std::string>::const_iterator loopback = std::find( m_bypass.begin(), m_bypass.end(), "<-loopback>" );
+		if ( m_bypass.end() != loopback )
+		{
+			m_bypass.erase( loopback );
+			m_bypass.push_back( "http://127.0.0.1" );
+			m_bypass.push_back( "https://127.0.0.1" );
+			m_bypass.push_back( "http://localhost" );
+			m_bypass.push_back( "https://localhost" );
+		}		
+	}
+
+	void load_local_bypass_data()
+	{
+		m_active_adapters.clear();
+		//https://msdn.microsoft.com/en-us/library/windows/desktop/aa365915(v=vs.85).aspx
+#define MAX_TRIES 3
+		DWORD dwRetVal;
+		ULONG Iterations = 0;
+		ULONG outBufLen = 15*1024;
+		ULONG family = AF_INET;
+		ULONG flags = GAA_FLAG_INCLUDE_PREFIX;
+		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
+		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
+		do {
+
+			pAddresses = (IP_ADAPTER_ADDRESSES *) new char[outBufLen];
+			if (nullptr == pAddresses) {
+				//out of mem.
+				return;
+			}
+
+			dwRetVal = GetAdaptersAddresses(family, flags, NULL, pAddresses, &outBufLen);
+
+			if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
+				delete[] pAddresses;
+				pAddresses = nullptr;
+			} else {
+				break;
+			}
+
+			Iterations++;
+
+		} while ((dwRetVal == ERROR_BUFFER_OVERFLOW) && (Iterations < MAX_TRIES));
+
+		if ( dwRetVal != NO_ERROR ) 
+		{
+			if ( nullptr != pAddresses ) { delete[] pAddresses; }
+			return; 
+		}
+		
+		pCurrAddresses = pAddresses;
+		while (pCurrAddresses) 
+		{
+
+			if ( pCurrAddresses->OperStatus == IfOperStatusUp )
+			{
+
+				PIP_ADAPTER_UNICAST_ADDRESS_LH crt_unicast = pCurrAddresses->FirstUnicastAddress;
+
+				while( crt_unicast  )
+				{
+					struct in_addr addr = ((sockaddr_in*)(crt_unicast->Address.lpSockaddr ))->sin_addr;
+
+					unsigned long net_mask = 0xFFFFFFFF;
+					net_mask <<= 32-crt_unicast->OnLinkPrefixLength;
+					net_mask = htonl( net_mask );
+					m_active_adapters.push_back( std::make_pair(addr.S_un.S_addr, net_mask ) );
+							
+					crt_unicast = crt_unicast->Next;
+				}
+			}
+
+			pCurrAddresses = pCurrAddresses->Next;
+
+		}
+
+		if ( nullptr != pAddresses ) { delete[] pAddresses; }
+	}
+
+	static bool should_bypass_proxy( const std::string& uri )
+	{
+		std::vector<std::string>::const_iterator match = std::find_if( m_bypass.begin(), m_bypass.end(), [&](const std::string& crt )
+		{
+			return uri.substr(0, crt.size() ) == crt;
+		});
+		if ( match != m_bypass.end() ) { return true; }
+
+		char ip[16];
+		ip[0]=0;
+		char offset=0;
+		bool should_copy = false;
+		for ( size_t i = 0; i < uri.size()-1; ++i )
+		{
+			if ( !should_copy )
+			{
+				if( uri[i] == '/' )
+				{
+					if ( uri[i+1] != '/' ) { return false; }
+					should_copy = true;
+					++i;
+				}
+			} else
+			{
+				if ( 15==offset ) { return false; }
+				ip[offset++]=uri[i];
+				if ( uri[i+1] == '/' || uri[i+1] == ':'  ) { break; }
+			}
+		}
+		ip[offset] = 0;
+		unsigned long addr = inet_addr( ip );
+
+		std::vector<std::pair<unsigned long,unsigned long>>::const_iterator  next_match = std::find_if( m_active_adapters.begin(), m_active_adapters.end(), 
+			[&]( const std::pair<unsigned long,unsigned long>& crt )
+			{
+				return ( addr & crt.second ) == ( crt.first & crt.second );
+			}
+		);
+
+		return next_match != m_active_adapters.end();
 	}
 
 	void load_proxies( const std::string& proxy_string )
@@ -319,8 +471,9 @@ private:
 
 	//proxy conf
 	static bool m_use_proxy;
-	static std::string m_bypass;
-	
+	static std::vector<std::string> m_bypass;	
+	static std::vector<std::pair<unsigned long,unsigned long>> m_active_adapters;	
+	static bool m_proxy_bypass_local;
 	static std::string m_proxy;
 	static int m_proxy_port;
 	static std::string m_proxy_ssl;
@@ -329,4 +482,5 @@ private:
 	static bool m_do_init;
 
 	static CSimpleScriptSite* m_auto_proxy_handler;
+	
 };

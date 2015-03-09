@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA data stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -26,22 +26,46 @@
 
 class catalog_row
 {
+private:
+	static const size_t MAX_BUF_SIZE = 1024 * sizeof( wchar_t );
+private:
+	void copy( const catalog_row& other )
+	{
+		m_catalog = _wcsdup( other.m_catalog );
+		m_description = _wcsdup( other.m_description );
+	}
 public:
-	wchar_t         m_catalog[256];
-	wchar_t         m_description[256];
-
-	EMPTY_CONSTRUCTOR(catalog_row);
+	wchar_t*         m_catalog;
+	wchar_t*         m_description;	
 
 	catalog_row( row& a_row ) 
 	{
-		wcscpy_s( m_catalog, 256, FROM_STRING( a_row.CATALOG_USCORENAME, CP_UTF8 ) ); 
-		wcscpy_s( m_description, 256, FROM_STRING( a_row.DESCRIPTION, CP_UTF8 ) );
+		m_catalog = _wcsdup( FROM_STRING( a_row.CATALOG_USCORENAME, CP_UTF8 ) ); 
+		m_description = _wcsdup( FROM_STRING( a_row.DESCRIPTION, CP_UTF8 ) );
 	}
 
+	catalog_row( const catalog_row& other )
+	{
+		copy( other );
+	}
+
+	catalog_row& operator=( const catalog_row& other )
+	{
+		if ( this != &other )  {  copy( other ); }
+		return *this;
+	}
+
+	~catalog_row()
+	{
+		delete[] m_catalog;
+		delete[] m_description;
+	}
+
+	EMPTY_CONSTRUCTOR(catalog_row);
 	static char* schema_name() { return "DBSCHEMA_CATALOGS"; }
 
 	BEGIN_PROVIDER_COLUMN_MAP( catalog_row )
-	PROVIDER_COLUMN_ENTRY_WSTR( "CATALOG_NAME", 1, m_catalog )
-	PROVIDER_COLUMN_ENTRY_WSTR( "DESCRIPTION", 2, m_description )
+	PROVIDER_COLUMN_ENTRY_VAR_WSTR( "CATALOG_NAME", 1, MAX_BUF_SIZE, m_catalog )
+	PROVIDER_COLUMN_ENTRY_VAR_WSTR( "DESCRIPTION", 2, MAX_BUF_SIZE, m_description )
 	END_PROVIDER_COLUMN_MAP()
 };

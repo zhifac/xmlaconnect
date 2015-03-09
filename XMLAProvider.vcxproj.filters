@@ -198,6 +198,9 @@
     <ClInclude Include="pac_interpreter.h">
       <Filter>Header Files\config</Filter>
     </ClInclude>
+    <ClInclude Include="dimension_properties.h">
+      <Filter>Header Files\compatibility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="XMLAProvider.rc">

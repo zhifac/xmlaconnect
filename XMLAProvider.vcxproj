@@ -84,7 +84,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>ALLOW_TRANSLATIONS;WITH_OPENSSL;WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WITH_OPENSSL;WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\gsoap\gsoap\;..\openssl\include\;..\atl_server\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
@@ -110,7 +110,7 @@
       <ModuleDefinitionFile>.\XMLAProvider.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>Ws2_32.lib;Dnsapi.lib;Crypt32.lib;Wininet.lib;libeay32d.lib;ssleay32d.lib;Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Iphlpapi.lib;Ws2_32.lib;Dnsapi.lib;Crypt32.lib;Wininet.lib;libeay32d.lib;ssleay32d.lib;Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\openssl\lib\Windows\i386\static\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -119,7 +119,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WITH_OPENSSL;WIN32;_WINDOWS;_DEBUG;_USRDLL;ALLOW_TRANSLATIONS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WITH_NOIDREF;WITH_OPENSSL;WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\gsoap\gsoap\;..\openssl\include\;..\atl_server\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
@@ -143,7 +143,7 @@
       <ModuleDefinitionFile>.\XMLAProvider.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>Ws2_32.lib;Dnsapi.lib;Crypt32.lib;Wininet.lib;libeay32d.lib;ssleay32d.lib;Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Iphlpapi.lib;Ws2_32.lib;Dnsapi.lib;Crypt32.lib;Wininet.lib;libeay32d.lib;ssleay32d.lib;Version.lib;comsuppwd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\openssl\lib\Windows\x86_64\static\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -152,7 +152,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>ALLOW_TRANSLATIONS;WITH_OPENSSL;WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WITH_OPENSSL;WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\gsoap\gsoap\;..\openssl\include\;..\atl_server\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
@@ -180,7 +180,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>Ws2_32.lib;Dnsapi.lib;Crypt32.lib;Wininet.lib;libeay32.lib;ssleay32.lib;Version.lib;comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Iphlpapi.lib;Ws2_32.lib;Dnsapi.lib;Crypt32.lib;Wininet.lib;libeay32.lib;ssleay32.lib;Version.lib;comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\openssl\lib\Windows\i386\static\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -189,7 +189,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>ALLOW_TRANSLATIONS;WITH_OPENSSL;WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WITH_OPENSSL;WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\gsoap\gsoap\;..\openssl\include\;..\atl_server\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
@@ -215,7 +215,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RegisterOutput>true</RegisterOutput>
-      <AdditionalDependencies>Ws2_32.lib;Dnsapi.lib;Crypt32.lib;Wininet.lib;libeay32.lib;ssleay32.lib;Version.lib;comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Iphlpapi.lib;Ws2_32.lib;Dnsapi.lib;Crypt32.lib;Wininet.lib;libeay32.lib;ssleay32.lib;Version.lib;comsuppw.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\openssl\lib\Windows\x86_64\static\</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -289,6 +289,7 @@
     <ClInclude Include="config_data.h" />
     <ClInclude Include="cube_row.h" />
     <ClInclude Include="axis_row.h" />
+    <ClInclude Include="dimension_properties.h" />
     <ClInclude Include="dimension_row.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="function_row.h" />
@@ -320,7 +321,7 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\gsoap\gsoap\bin\win32\soapcpp2.exe -i XMLAMethods.h</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">soapXMLAConnectionProxy.h soapXMLAConnectionProxy.cpp</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </CustomBuild>
     <ClInclude Include="version_info.h" />
     <ClInclude Include="XMLAProvider_i.h" />

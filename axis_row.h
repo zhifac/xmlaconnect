@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA m_data_exchange stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -25,6 +25,8 @@
 class axis_row
 {
 private:
+	static const size_t MAX_BUF_SIZE = 10 * 1024 * sizeof( wchar_t );
+private:
 	char*					m_data_exchange;
 	xmlns__Axis*			m_axis;
 	xmlns__AxisInfo*		m_axis_info;
@@ -33,6 +35,7 @@ private:
 	DBLENGTH				m_buf_size;
 	typedef 				std::map<unsigned short, unsigned short> m_indirection_type;
 	m_indirection_type		m_indirection;
+	std::vector<size_t>		m_boundaries;
 public:
 	axis_row()
 	{
@@ -87,12 +90,12 @@ public:
 
 		for ( unsigned int i = 0, e = m_axis_info->__size; i < e; ++i ) {
 			xmlns__HierarchyInfo hInfo = m_axis_info->HierarchyInfo[i];
-
+			m_boundaries.push_back(crtColInfo);
 			m_col_info[crtColInfo].pwszName = _wcsdup( CA2W( hInfo.UName.name, CP_UTF8 ) );
 			m_col_info[crtColInfo].pTypeInfo = (ITypeInfo*)nullptr;
 			m_col_info[crtColInfo].iOrdinal = crtColInfo+1;
 			m_col_info[crtColInfo].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
-			m_col_info[crtColInfo].ulColumnSize = 1024;
+			m_col_info[crtColInfo].ulColumnSize = MAX_BUF_SIZE;
 			m_col_info[crtColInfo].wType = DBTYPE_WSTR;
 			m_col_info[crtColInfo].bPrecision = 0xFF;
 			m_col_info[crtColInfo].bScale = 0xFF;
@@ -105,7 +108,7 @@ public:
 			m_col_info[crtColInfo].pTypeInfo = (ITypeInfo*)nullptr;
 			m_col_info[crtColInfo].iOrdinal = crtColInfo+1;
 			m_col_info[crtColInfo].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
-			m_col_info[crtColInfo].ulColumnSize = 1024;
+			m_col_info[crtColInfo].ulColumnSize = MAX_BUF_SIZE;
 			m_col_info[crtColInfo].wType = DBTYPE_WSTR;
 			m_col_info[crtColInfo].bPrecision = 0xFF;
 			m_col_info[crtColInfo].bScale = 0xFF;
@@ -118,7 +121,7 @@ public:
 			m_col_info[crtColInfo].pTypeInfo = (ITypeInfo*)nullptr;
 			m_col_info[crtColInfo].iOrdinal = crtColInfo+1;
 			m_col_info[crtColInfo].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
-			m_col_info[crtColInfo].ulColumnSize = 1024;
+			m_col_info[crtColInfo].ulColumnSize = MAX_BUF_SIZE;
 			m_col_info[crtColInfo].wType = DBTYPE_WSTR;
 			m_col_info[crtColInfo].bPrecision = 0xFF;
 			m_col_info[crtColInfo].bScale = 0xFF;
@@ -158,7 +161,7 @@ public:
 				m_col_info[crtColInfo].pTypeInfo = (ITypeInfo*)nullptr;
 				m_col_info[crtColInfo].iOrdinal = crtColInfo+1;
 				m_col_info[crtColInfo].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
-				m_col_info[crtColInfo].ulColumnSize = 1024;
+				m_col_info[crtColInfo].ulColumnSize = MAX_BUF_SIZE;
 				m_col_info[crtColInfo].wType = DBTYPE_WSTR;
 				m_col_info[crtColInfo].bPrecision = 0xFF;
 				m_col_info[crtColInfo].bScale = 0xFF;
@@ -173,7 +176,7 @@ public:
 				m_col_info[crtColInfo].pTypeInfo = (ITypeInfo*)nullptr;
 				m_col_info[crtColInfo].iOrdinal = crtColInfo+1;
 				m_col_info[crtColInfo].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
-				m_col_info[crtColInfo].ulColumnSize = 1024;
+				m_col_info[crtColInfo].ulColumnSize = MAX_BUF_SIZE;
 				m_col_info[crtColInfo].wType = DBTYPE_WSTR;
 				m_col_info[crtColInfo].bPrecision = 0xFF;
 				m_col_info[crtColInfo].bScale = 0xFF;
@@ -204,7 +207,7 @@ public:
 				m_col_info[crtColInfo].pTypeInfo = (ITypeInfo*)nullptr;
 				m_col_info[crtColInfo].iOrdinal = crtColInfo+1;
 				m_col_info[crtColInfo].dwFlags = DBCOLUMNFLAGS_ISFIXEDLENGTH;
-				m_col_info[crtColInfo].ulColumnSize = 1024;
+				m_col_info[crtColInfo].ulColumnSize = MAX_BUF_SIZE;
 				m_col_info[crtColInfo].wType = DBTYPE_WSTR;
 				m_col_info[crtColInfo].bPrecision = 0xFF;
 				m_col_info[crtColInfo].bScale = 0xFF;
@@ -232,9 +235,14 @@ public:
 		*( ( DBLENGTH *) m_data_exchange ) = idx;
 		offset += m_col_info[0].ulColumnSize;
 
+		size_t pos = 0;
+		size_t length = m_boundaries.size() - 1;
 		for ( unsigned short i = 1; i < m_col_info_cnt; ++i ) {
-			unsigned short idx = ( i-1 ) % member_size;
-			unsigned short memberIdx = (i - 1 ) / member_size;
+			if ( (pos < length) && (i == m_boundaries[pos+1] ) ) {
+				++pos;
+			}
+			unsigned short idx = i- m_boundaries[pos];//( i-1 ) % member_size;
+			unsigned short memberIdx = pos;//(i - 1 ) / member_size;
 			switch ( idx ) {
 			case 0://UName
 				wcscpy_s(  ( wchar_t* )( m_data_exchange + offset ), m_col_info[i].ulColumnSize / 2, CA2W( crtTuple.Member[ memberIdx ].UName, CP_UTF8 ) );
@@ -258,8 +266,8 @@ public:
 				break;
 			default://optional
 				{
-					unsigned short customIdx = m_indirection.at(idx);
-					switch ( m_indirection.at( idx ) ) {
+					//unsigned short customIdx = m_indirection.at(idx);
+					switch ( m_indirection.at( i - 1 ) ) {
 					case 0://ParentUniqueName
 						if ( nullptr != crtTuple.Member[ memberIdx ].PARENT_USCOREUNIQUE_USCORENAME ) {
 							wcscpy_s(  ( wchar_t* )( m_data_exchange + offset ), m_col_info[i].ulColumnSize / 2, CA2W( crtTuple.Member[ memberIdx ].PARENT_USCOREUNIQUE_USCORENAME, CP_UTF8 ) );
@@ -299,7 +307,7 @@ public:
 						break;
 					default://custom props
 						{
-							size_t crt_idx = m_indirection.at( idx ) - 3;
+							size_t crt_idx = m_indirection.at( i - 1 ) - 3;
 							if ( crtTuple.Member[ memberIdx ].__userProp.__size <= crt_idx )
 							{
 								*( ( wchar_t* )( m_data_exchange + offset ) ) = 0;
@@ -353,6 +361,7 @@ private:
 		m_col_info = nullptr;
 		m_data_exchange = nullptr;
 		m_axis = nullptr;
+		m_boundaries.clear();
 	}
 };
 

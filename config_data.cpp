@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA data stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -26,10 +26,13 @@
 bool config_data::m_skip_ssl_host_check = false;
 std::wstring config_data::m_location = TEXT("");
 bool config_data::m_use_proxy = false;
-std::string config_data::m_bypass;
+std::vector<std::string> config_data::m_bypass;
+std::vector<std::pair<unsigned long,unsigned long>> config_data::m_active_adapters;	
+bool config_data::m_proxy_bypass_local;
 std::string config_data::m_proxy;
 int config_data::m_proxy_port;
 std::string config_data::m_proxy_ssl;
 int config_data::m_proxy_port_ssl;
 bool config_data::m_do_init = true;
 CSimpleScriptSite* config_data::m_auto_proxy_handler = nullptr;
+config_data::cred_store_type config_data::m_credentials;

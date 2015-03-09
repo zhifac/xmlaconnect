@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA data stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -24,18 +24,22 @@
 
 #pragma once
 
-//#define ALLOW_TRANSLATIONS
+#define ALLOW_TRANSLATIONS
 
 #include <vector>
 #include <unordered_map>
 #include <cstring>
 #include "soapXMLAConnectionProxy.h"
-#ifdef ALLOW_TRANSLATIONS
+
+
 #include "query_translator.h"
-#else
+
+
 #include <cctype>
-#endif
+
+
 #include "config_data.h"
+#include "dimension_properties.h"
 
 class connection_handler
 {
@@ -255,8 +259,34 @@ private:
 			return hr;
 		}
 
-		pProperties->GetProperties( 0, NULL, &propCount, &props );
+		//Session catalog has lower precendence than db catalog
+		ISessionProperties* pISessionProperties = NULL;
+		if SUCCEEDED( m_session->QueryInterface(__uuidof(ISessionProperties),(void**)&pISessionProperties) ) {
+			pISessionProperties->GetProperties( 0, NULL, &propCount, &props );
 
+			for ( ULONG i = 0; i < propCount; i++ )
+			{
+				for ( ULONG j =0; j < props[i].cProperties; j++ )
+				{
+					if ( IsEqualGUID( props[i].guidPropertySet, DBPROPSET_SESSION ) ) {
+						if ( DBPROP_CURRENTCATALOG == props[i].rgProperties[j].dwPropertyID ) {
+							std::string buf = CT2A(props[i].rgProperties[j].vValue.bstrVal, CP_UTF8);
+							if ( !buf.empty() )  {
+								std::swap( m_catalog, buf );
+							}
+						}
+					}
+					VariantClear( &(props[i].rgProperties[j].vValue) );
+				}
+				pIMalloc->Free( props[i].rgProperties );
+			}
+			pIMalloc->Free( props );
+
+			pISessionProperties->Release();
+		}
+
+
+		pProperties->GetProperties( 0, NULL, &propCount, &props );
 
 		for ( ULONG i = 0; i < propCount; i++ )
 		{
@@ -285,32 +315,6 @@ private:
 			pIMalloc->Free( props[i].rgProperties );
 		}
 		pIMalloc->Free( props );
-
-		//Seesion catalog has higher precendence than db catalog
-		ISessionProperties* pISessionProperties = NULL;
-		if SUCCEEDED( m_session->QueryInterface(__uuidof(ISessionProperties),(void**)&pISessionProperties) ) {
-			pISessionProperties->GetProperties( 0, NULL, &propCount, &props );
-
-			for ( ULONG i = 0; i < propCount; i++ )
-			{
-				for ( ULONG j =0; j < props[i].cProperties; j++ )
-				{
-					if ( IsEqualGUID( props[i].guidPropertySet, DBPROPSET_SESSION ) ) {
-						if ( DBPROP_CURRENTCATALOG == props[i].rgProperties[j].dwPropertyID ) {
-							std::string buf = CT2A(props[i].rgProperties[j].vValue.bstrVal, CP_UTF8);
-							if ( !buf.empty() )  {
-								std::swap( m_catalog, buf );
-							}
-						}
-					}
-					VariantClear( &(props[i].rgProperties[j].vValue) );
-				}
-				pIMalloc->Free( props[i].rgProperties );
-			}
-			pIMalloc->Free( props );
-
-			pISessionProperties->Release();
-		}
 
 		pIMalloc->Release();
 		pProperties->Release();
@@ -351,7 +355,7 @@ private:
 				}
 				break;
 			case 3://SET_NAME
-				if ( VT_BSTR == rgRestrictions[i].vt  ) {
+				if ( VT_BSTR == rgRestrictions[i].vt && add_cat ) {
 					where.RestrictionList.SET_USCORENAME = _strdup(CT2A(rgRestrictions[i].bstrVal, CP_UTF8));
 				}
 				break;
@@ -629,6 +633,20 @@ public:
 		safe_delete_column_headers();
 	}
 
+	void loadCubeDimProps( cxmla__DiscoverResponse&  aresponse ){
+		xmlns__rows& rows = m_d_response.cxmla__return__.root.__rows;
+		for( int i = 0; i < rows.__size; ++i ) {
+			dim_properties::instance().addProperty( m_catalog, rows.row[i].CUBE_USCORENAME, rows.row[i].PROPERTY_USCORENAME, rows.row[i].HIERARCHY_USCOREUNIQUE_USCORENAME, rows.row[i].LEVEL_USCOREUNIQUE_USCORENAME ); 
+			std::string alias = std::string(rows.row[i].HIERARCHY_USCOREUNIQUE_USCORENAME)+".["+rows.row[i].PROPERTY_USCORENAME+"]";
+			std::string substr = std::string(rows.row[i].LEVEL_USCOREUNIQUE_USCORENAME)+".["+rows.row[i].PROPERTY_USCORENAME+"]";
+			query_translator::translator().load_alias( alias, substr, session::session_table()[ m_session ].server);
+		}
+	}
+
+	void loasAlias() {
+
+	}
+
 	int discover( char* endpoint, ULONG cRestrictions, const VARIANT* rgRestrictions)
 	{
 		m_proxy.soap_endpoint = m_location.c_str();
@@ -646,13 +664,29 @@ public:
 			m_proxy.passwd = m_pass.c_str();
 			session();
 		}	
-		xmlns__Restrictions restrictions;
 
+		bool loadProperties = false;
+		xmlns__Restrictions restrictions;
 		load_restrictions( cRestrictions, rgRestrictions, restrictions, strcmp("DISCOVER_LITERALS", endpoint) != 0 && strcmp("MDSCHEMA_FUNCTIONS", endpoint) != 0 );
+
+
+		if ( ("MDSCHEMA_PROPERTIES" == endpoint) &&  ("MDSCHEMA_PROPERTIES" == endpoint) && (strcmp("1", restrictions.RestrictionList.PROPERTY_USCORETYPE) == 0) ) {
+			loadProperties = true;
+			if ( NULL != restrictions.RestrictionList.LEVEL_USCOREUNIQUE_USCORENAME ) {
+				delete restrictions.RestrictionList.LEVEL_USCOREUNIQUE_USCORENAME;
+				restrictions.RestrictionList.LEVEL_USCOREUNIQUE_USCORENAME = NULL;
+			}
+		}
+
 		xmlns__Properties props;
 		props.PropertyList.Catalog = const_cast<char*>(m_catalog.c_str());//make Palo happy	
 		props.PropertyList.LocaleIdentifier = CP_UTF8;
 		int result = m_proxy.Discover( endpoint, restrictions, props, m_d_response );
+
+		if ( 0 == result && loadProperties ) {
+			loadCubeDimProps( m_d_response );
+		}
+
 		if ( NULL != m_session && NULL != m_proxy.header && NULL != m_proxy.header->Session && NULL != m_proxy.header->Session->SessionId ) {
 			session::session_table()[ m_session ].id = atoi( m_proxy.header->Session->SessionId );
 		}
@@ -701,14 +735,13 @@ public:
 
 		xmlns__Command command;
 
-#ifdef ALLOW_TRANSLATIONS
 		std::string translation( statement );
 		if ( nullptr !=  m_session )
 		{
 			query_translator::translator().translate( translation, session::session_table()[ m_session ].server );
 		}
 		statement = const_cast<char*>( translation.c_str() );
-#endif
+
 		command.Statement = statement;
 		xmlns__Properties Properties;
 		Properties.PropertyList.LocaleIdentifier = CP_UTF8;
@@ -788,6 +821,12 @@ public:
 			static const char* noInfo = "No further information.";
 			return noInfo;
 		}
+
+		if ( nullptr != m_proxy.fault->detail && nullptr != m_proxy.fault->detail->error.desc )
+		{
+			return m_proxy.fault->detail->error.desc;
+		}
+
 		return m_proxy.fault->faultstring;
 	}
 
@@ -867,7 +906,13 @@ public:
 					result.bstrVal = NULL;
 					result.vt = VT_BSTR;
 				} else {
-					result.dblVal = atof( val.__v );
+					char* end_pos;
+					result.dblVal = strtod(val.__v,&end_pos);
+					if ( 0 == result.dblVal && 0 != *end_pos )
+					{
+						result.bstrVal = SysAllocString( CA2W( val.__v, CP_UTF8 ) );
+						result.vt = VT_BSTR;
+					}
 				}
 			} else if ( 0 == strcmp( val.xsi__type, "xsd:string" ) ) {
 				result.vt = VT_BSTR;
@@ -885,7 +930,13 @@ public:
 					result.bstrVal = NULL;
 					result.vt = VT_BSTR;
 				} else {
-					result.intVal = atoi( val.__v );
+					char* end_pos;
+					result.intVal = strtol( val.__v, &end_pos, 10 );
+					if ( 0 == result.intVal && 0 != *end_pos )
+					{
+						result.bstrVal = SysAllocString( CA2W( val.__v, CP_UTF8 ) );
+						result.vt = VT_BSTR;
+					}
 				}
 			} else if ( 0 == strcmp( val.xsi__type, "xsd:boolean" ) ) { 
 				if ( NULL == val.__v ) {

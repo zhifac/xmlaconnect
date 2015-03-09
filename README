@@ -1,3 +1,9 @@
+Changes 9-March-2015
+1. Support for Mondrian level properties. Caveat: will not work when having two propeties with the same name on the same hierarchy
+2. Support for proxy bypass.
+3. Preregisters well known CA root certificates.
+4. Works with SharePoint 2013.
+
 Changes 1-Jan-2015
 
 1. Proxy autoconfiguration script support. Implemented with ATLHTTP. You need to download it from here: http://atlserver.codeplex.com/ . The solution expects atlhttp to be on the same level with gsoap. The current build layout is shown belw:

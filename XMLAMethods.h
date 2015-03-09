@@ -31,7 +31,12 @@ struct SOAP_ENV__Header {
 	} *EndSession;
 };
 
-
+struct SOAP_ENV__Detail {
+ struct erType {
+  xsd__string code;
+  xsd__string desc;
+ } error;
+};
 
 //gsoap xmlns service name: XMLAConnection //gsoap xmlns service type: XMLAConnectionPortType 
 //gsoap xmlns service namespace: urn:schemas-microsoft-com:xml-analysis

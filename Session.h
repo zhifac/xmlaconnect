@@ -1,6 +1,6 @@
 /*
 	ODBO provider for XMLA data stores
-    Copyright (C) 2014  Yalos Software Labs
+    Copyright (C) 2014-2015  ARquery LTD
 	http://www.arquery.com
 
     This program is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@
 
 #include <strsafe.h>
 
+
 class catalog_rowset;
 class cube_rowset;
 class dimension_rowset;
@@ -34,6 +35,8 @@ class member_rowset;
 class measure_rowset;
 class property_rowset;
 class set_rowset;
+
+
 
 using namespace ATL;
 
@@ -99,7 +102,7 @@ public:
 		return FInit();
 	}
 	
-	void FinalRelease() 
+	void FinalRelease() 	
 	{
 		session_table().erase( session_table().find( this ) );
 	}
