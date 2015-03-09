@@ -1,5 +1,5 @@
 Changes 9-March-2015
-1. Support for Mondrian level properties. Caveat: will not work when having two propeties with the same name on the same hierarchy
+1. Support for Mondrian level properties. Caveat: will not work when having two properties with the same name on the same hierarchy
 2. Support for proxy bypass.
 3. Preregisters well known CA root certificates.
 4. Works with SharePoint 2013.
@@ -72,6 +72,8 @@ All the paths in the solution are now relative to the above layout. This was int
 
 
 How to build
+
+For Mondrian make sure the file "mondrian_dialect.txt" is in the same folder as the dll file.
 
 In theory you can build this with Windows SDK. In practice this was never tried yet. In the repo there is a Visual Studio 2010 solution that works.
 You need gSOAP (https://sourceforge.net/projects/gsoap2/) in order to build this project. Once you installed gSOAP you need to adjust the solution for the gSOAP path. With the project open in Visual Sudio 2010, in the Solution Explorer go to gsoap->def and right-click on XMLAMethods.h. You must change the Custom Build Tool so that it matches your actual location of soapcpp2.exe. 
